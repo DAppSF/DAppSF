@@ -1,32 +1,37 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import HTMLResponse, PlainTextResponse
 import os, uuid, subprocess
-
-app = FastAPI()
+from flask import Flask, request, render_template_string, Response
+from werkzeug.utils import secure_filename
 
 UPLOAD_DIR = "/data/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@app.get("/", response_class=HTMLResponse)
+app = Flask(__name__)
+
+@app.get("/")
 def home():
-    return """
-    <h1>DAppSF File Upload MVP</h1>
+    return render_template_string("""
+    <h1>DAppSF File Upload MVP (HEORFlask)</h1>
     <form action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" name="file"><br><br>
+    <input type="file" id="file" name="file" accept=".dmg">
       <input type="submit" value="Upload">
     </form>
-    """
+    """)
 
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
+def upload():
+    f = request.files.get("file")
+    if not f or f.filename == "":
+        return Response("No file provided.", status=400)
+
     job_id = str(uuid.uuid4())
     job_path = os.path.join(UPLOAD_DIR, job_id)
     os.makedirs(job_path, exist_ok=True)
 
-    file_path = os.path.join(job_path, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    safe_name = secure_filename(f.filename)
+    file_path = os.path.join(job_path, safe_name)
+    f.save(file_path)
 
     # Run `ls -l` on the uploaded folder
     result = subprocess.run(["ls", "-l", job_path], capture_output=True, text=True)
-    return PlainTextResponse(f"File saved to {file_path}\n\nls -l output:\n{result.stdout}")
+    output = f"File saved to {file_path}\n\nls -l output:\n{result.stdout}"
+    return Response(output, mimetype="text/plain")

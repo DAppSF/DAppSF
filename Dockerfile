@@ -1,20 +1,14 @@
 FROM python:3.12-slim
 
-# Create app directory
 WORKDIR /app
-
-# Install deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app
 COPY app.py .
 
-# Make upload dir
+# Prepare upload dir
 RUN mkdir -p /data/uploads
 
-# Expose port
 EXPOSE 8000
-
-# Run server
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Gunicorn with 1 worker is fine for MVP; bump later if needed
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "app:app"]
