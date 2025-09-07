@@ -11,12 +11,13 @@
   <a class="button" href="{{ url_for('main.home') }}">Back</a>
 </section>
 <section class="card">
-  <h2>Code Signing</h2>
-  {% if code_signing %}
-  <pre>{{ code_signing }}</pre>
-  {% else %}
-  <p>No code_signing found.</p>
-  {% endif %}
+  <div class="card-header">
+    <h2>Code Signing</h2>
+    <button class="collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+  </div>
+  <div class="card-content">
+    {% if code_signing %}<pre>{{ code_signing }}</pre>{% else %}<p>No code_signing found.</p>{% endif %}
+  </div>
 </section>
 <section class="card">
   <h2>Hardened Runtime</h2>
@@ -52,6 +53,8 @@
 </section>
 <section class="card">
   <h2>strings</h2>
+          <button class="collapse-btn" onclick="toggleCollapse(this)">▼</button>
+
   {% if strings %}
   <pre>{{ strings }}</pre>
   {% else %}

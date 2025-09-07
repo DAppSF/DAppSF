@@ -1,12 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><title>{{ title or 'DAppSF' }}</title>
+  <meta charset="utf-8">
+  <title>{{ title or 'DAppSF' }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Global styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
-<header><div class="wrap header-grid"><strong>DAppSF</strong><nav><a class="button" href="{{ url_for('main.home') }}">Upload</a></nav></div></header>
-<main class="wrap">{% block body %}{% endblock %}</main>
-<footer><div class="wrap"><div class="meta">© 2025 · DAppSF</div></div></footer>
-</body></html>
+  <header>
+    <div class="wrap header-grid">
+      <strong>DAppSF</strong>
+      <nav><a class="button" href="{{ url_for('main.home') }}">Upload</a></nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% block body %}{% endblock %}
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="meta">© {{ 2025 }} · DAppSF</div>
+    </div>
+  </footer>
+
+  <!-- Collapse behavior -->
+  <script src="{{ url_for('static', filename='collapse.js') }}"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
