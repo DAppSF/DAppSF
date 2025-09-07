@@ -1,0 +1,8 @@
+:root{--font:ui-sans-serif,-apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans','Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol',sans-serif;--bg:#fff;--fg:#111;--border:rgba(0,0,0,.08);--muted:#555;--hover:#f6f6f6;}
+@media (prefers-color-scheme: dark){:root{--bg:#0b0b0c;--fg:#eaeaea;--border:rgba(255,255,255,.12);--muted:#aaa;--hover:#1a1a1c;}}
+*{box-sizing:border-box}body{font-family:var(--font);margin:0;background:var(--bg);color:var(--fg);line-height:1.6}
+.header-grid{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.wrap{max-width:56rem;margin:0 auto;padding:1.0rem 1.25rem}
+.card{border:1px solid var(--border);border-radius:14px;padding:1rem;margin-top:1rem}
+.button{display:inline-block;margin-top:1rem;padding:.6rem 1rem;border-radius:10px;border:1px solid var(--border);text-decoration:none;color:inherit;background:none;cursor:pointer}
+.button:hover{background:var(--hover)}

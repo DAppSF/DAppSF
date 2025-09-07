@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block body %}
+<h1>Analysis Report</h1>
+<section class="card">
+  <p class="meta"><strong>Job:</strong> {{ job_id }}</p>
+  {% if analysis %}
+  <pre>{{ analysis }}</pre>
+  {% else %}
+  <p>No analysis yet.</p>
+  {% endif %}
+  <a class="button" href="{{ url_for('main.home') }}">Back</a>
+</section>
+<section class="card">
+  <h2>Code Signing</h2>
+  {% if code_signing %}
+  <pre>{{ code_signing }}</pre>
+  {% else %}
+  <p>No code_signing found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Hardened Runtime</h2>
+  {% if hardened_runtime %}
+  <pre>{{ hardened_runtime }}</pre>
+  {% else %}
+  <p>No hardened_runtime found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Entitlements</h2>
+  {% if entitlements %}
+  <pre>{{ entitlements }}</pre>
+  {% else %}
+  <p>No entitlements found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Otool</h2>
+  {% if otool %}
+  <pre>{{ otool }}</pre>
+  {% else %}
+  <p>No otool found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>nm</h2>
+  {% if nm %}
+  <pre>{{ nm }}</pre>
+  {% else %}
+  <p>No nm found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>strings</h2>
+  {% if strings %}
+  <pre>{{ strings }}</pre>
+  {% else %}
+  <p>No strings found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>lldb</h2>
+  {% if lldb %}
+  <pre>{{ lldb }}</pre>
+  {% else %}
+  <p>No lldb found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Binary Protections (Mach-O hardening)</h2>
+  {% if binary_protections %}
+  <pre>{{ binary_protections }}</pre>
+  {% else %}
+  <p>No binary_protections found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Notarization / Gatekeeper / Quarantine</h2>
+  {% if notarization %}
+  <pre>{{ notarization }}</pre>
+  {% else %}
+  <p>No notarization found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Persistence & Auto-Start</h2>
+  {% if persistence %}
+  <pre>{{ persistence }}</pre>
+  {% else %}
+  <p>No persistence found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Keychain Usage</h2>
+  {% if keychain %}
+  <pre>{{ keychain }}</pre>
+  {% else %}
+  <p>No keychain found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Sensitive Storage</h2>
+  {% if sensitive %}
+  <pre>{{ sensitive }}</pre>
+  {% else %}
+  <p>No sensitive found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Network Security</h2>
+  {% if network %}
+  <pre>{{ network }}</pre>
+  {% else %}
+  <p>No network found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>IPC</h2>
+  {% if ipc %}
+  <pre>{{ ipc }}</pre>
+  {% else %}
+  <p>No ipc found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Dynamic Tracing</h2>
+  {% if dynamic_tracing %}
+  <pre>{{ dynamic_tracing }}</pre>
+  {% else %}
+  <p>No dynamic_tracing found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Dylib Injection / Hijacking</h2>
+  {% if dylib_injection %}
+  <pre>{{ dylib_injection }}</pre>
+  {% else %}
+  <p>No dylib_injection found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Privacy / TCC</h2>
+  {% if privacy %}
+  <pre>{{ privacy }}</pre>
+  {% else %}
+  <p>No privacy found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Update Mechanisms</h2>
+  {% if secrets %}
+  <pre>{{ secrets }}</pre>
+  {% else %}
+  <p>No secrets found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Helpers & Privileged Ops</h2>
+  {% if helpers %}
+  <pre>{{ helpers }}</pre>
+  {% else %}
+  <p>No helpers found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>URL Schemes & AppleScript/JXA</h2>
+  {% if url_schemes %}
+  <pre>{{ url_schemes }}</pre>
+  {% else %}
+  <p>No url_schemes found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Crash Handling & Logs</h2>
+  {% if crash_handling %}
+  <pre>{{ crash_handling }}</pre>
+  {% else %}
+  <p>No crash_handling found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Plugins / Extensions / Interpreters</h2>
+  {% if plugins %}
+  <pre>{{ plugins }}</pre>
+  {% else %}
+  <p>No plugins found.</p>
+  {% endif %}
+</section>
+{% endblock %}
