@@ -49,7 +49,7 @@
       ("Hardened Runtime", hardened_runtime),
       ("Entitlements", entitlements),
       ("Binary Protections", binary_protections),
-      ("Secrets & Sensitive Keys", secrets),
+      ("Secrets &amp; Sensitive Keys", secrets),
       ("Network Security", network),
       ("Keychain Usage", keychain),
       ("Sensitive Storage", sensitive),
@@ -58,19 +58,19 @@
       ("Dylib Injection / Hijacking", dylib_injection),
       ("Privacy / TCC", privacy),
       ("Update Mechanisms", updates),
-      ("Helpers & Privileged Ops", helpers),
+      ("Helpers &amp; Privileged Ops", helpers),
       ("URL Schemes", url_schemes),
-      ("Crash Handling & Logs", crash_handling),
-      ("Plugins & Extensions", plugins),
+      ("Crash Handling &amp; Logs", crash_handling),
+      ("Plugins &amp; Extensions", plugins),
       ("Notarization / Gatekeeper", notarization),
-      ("Persistence & Auto-Start", persistence)
+      ("Persistence &amp; Auto-Start", persistence)
     ] %}
 
     {% for title, content in items %}
     <div class="col-md-6 mb-4">
       <section class="card bg-dark text-light border-secondary shadow-lg h-100 rounded-0">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center rounded-0 py-3">
-          <h3 class="h6 mb-0 fw-bold text-uppercase text-light" style="letter-spacing: 1px;">&gt;&gt; {{ title }}</h3>
+          <h3 class="h6 mb-0 fw-bold text-uppercase text-light" style="letter-spacing: 1px;">&gt;&gt; {{ title | safe }}</h3>
           <button class="btn btn-sm btn-dark text-light fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
         </div>
         <div class="card-body bg-black text-light p-3">
