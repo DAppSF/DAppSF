@@ -26,7 +26,7 @@ class Analyzer:
     def _get_all_files(self) -> list[str]:
         if self._all_files_cache is None:
             files_list = []
-            for root, dirs, files in os.walk(self.job_path):
+            for root, dirs, files in os.walk(self.job_path, followlinks=False):
                 for f in files:
                     files_list.append(os.path.join(root, f))
             self._all_files_cache = files_list
@@ -129,12 +129,12 @@ class Analyzer:
                 ["strings", "-a", self.main_binary],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=15,
                 errors="replace"
             )
             return res.stdout
         except subprocess.TimeoutExpired:
-            return "strings command timed out after 120 seconds."
+            return "strings command timed out after 15 seconds."
         except Exception as e:
             return f"Error running strings: {e}"
 
