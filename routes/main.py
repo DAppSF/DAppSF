@@ -1,19 +1,24 @@
 import os, uuid, subprocess
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, abort
 from werkzeug.utils import secure_filename
-from ..services.analysis import Analyzer
+from services.analysis import Analyzer
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("main", __name__)
 
+# main site of the app
 @bp.get("/")
 def home():
     return render_template("upload.html")
 
+# upload site of the app
 @bp.post("/upload")
 def upload():
     f = request.files.get("file")
     if not f or f.filename == "":
-        abort(400, "No file provided.")
+        abort(400, "No file provided")
     job_id = str(uuid.uuid4())
     job_path = os.path.join(current_app.config["UPLOAD_DIR"], job_id)
     os.makedirs(job_path, exist_ok=True)
@@ -24,13 +29,6 @@ def upload():
     analyzer.analyze(file_path)
     return redirect(url_for("main.result", job_id=job_id))
 
-def _read(job_path: str, relname: str) -> str:
-    p = os.path.join(job_path, relname)
-    if os.path.exists(p):
-        with open(p, "r", errors="replace") as fh:
-            return fh.read()
-    return ""
-    
 @bp.get("/result/<job_id>")
 def result(job_id: str):
     def _read(job_path: str, relname: str) -> str:
@@ -45,30 +43,28 @@ def result(job_id: str):
         abort(404)
 
     # load files written by Analyzer
-    analysis     = _read(job_path, "analysis.txt")
-    codesign     = _read(job_path, "codesign.txt")
-    hardened     = _read(job_path, "hardened.txt")
-    entitlements = _read(job_path, "entitlements.xml")
-    strings_out  = _read(job_path, "strings.txt")
-
-    # placeholders for not-yet-implemented cards
-    otool               = ""
-    nm                  = ""
-    lldb                = ""
-    binary_protections  = ""
-    notarization        = ""
-    persistence         = ""
-    keychain            = ""
-    sensitive           = ""
-    network             = ""
-    ipc                 = ""
-    dynamic_tracing     = ""
-    dylib_injection     = ""
-    privacy             = ""
-    helpers             = ""
-    url_schemes         = ""
-    crash_handling      = ""
-    plugins             = ""
+    analysis          = _read(job_path, "analysis.txt")
+    codesign          = _read(job_path, "codesign.txt")
+    hardened          = _read(job_path, "hardened.txt")
+    entitlements      = _read(job_path, "entitlements.xml")
+    strings_out       = _read(job_path, "strings.txt")
+    vulnerabilities   = _read(job_path, "vulnerabilities.txt")
+    binary_protections= _read(job_path, "binary_protections.txt")
+    secrets           = _read(job_path, "secrets.txt")
+    network           = _read(job_path, "network.txt")
+    keychain          = _read(job_path, "keychain.txt")
+    sensitive         = _read(job_path, "sensitive.txt")
+    dylib_injection   = _read(job_path, "dylib_injection.txt")
+    dynamic_tracing   = _read(job_path, "dynamic_tracing.txt")
+    ipc               = _read(job_path, "ipc.txt")
+    privacy           = _read(job_path, "privacy.txt")
+    url_schemes       = _read(job_path, "url_schemes.txt")
+    helpers           = _read(job_path, "helpers.txt")
+    plugins           = _read(job_path, "plugins.txt")
+    updates           = _read(job_path, "updates.txt")
+    persistence       = _read(job_path, "persistence.txt")
+    notarization      = _read(job_path, "notarization.txt")
+    crash_handling    = _read(job_path, "crash_handling.txt")
 
     return render_template(
         "result.html",
@@ -78,21 +74,21 @@ def result(job_id: str):
         hardened_runtime=hardened,
         entitlements=entitlements,
         strings=strings_out,
-        otool=otool,
-        nm=nm,
-        lldb=lldb,
+        vulnerabilities=vulnerabilities,
         binary_protections=binary_protections,
-        notarization=notarization,
-        persistence=persistence,
+        secrets=secrets,
+        network=network,
         keychain=keychain,
         sensitive=sensitive,
-        network=network,
-        ipc=ipc,
-        dynamic_tracing=dynamic_tracing,
         dylib_injection=dylib_injection,
+        dynamic_tracing=dynamic_tracing,
+        ipc=ipc,
         privacy=privacy,
-        helpers=helpers,
         url_schemes=url_schemes,
-        crash_handling=crash_handling,
+        helpers=helpers,
         plugins=plugins,
+        updates=updates,
+        persistence=persistence,
+        notarization=notarization,
+        crash_handling=crash_handling,
     )

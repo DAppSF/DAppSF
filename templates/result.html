@@ -1,192 +1,232 @@
 {% extends 'base.html' %}
 {% block body %}
-<h1>Analysis Report</h1>
-<section class="card">
-  <p class="meta"><strong>Job:</strong> {{ job_id }}</p>
-  {% if analysis %}
-  <pre>{{ analysis }}</pre>
-  {% else %}
-  <p>No analysis yet.</p>
-  {% endif %}
-  <a class="button" href="{{ url_for('main.home') }}">Back</a>
-</section>
-<section class="card">
-  <div class="card-header">
-    <h2>Code Signing</h2>
-    <button class="collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+<div class="container my-5" style="max-width: 1280px; font-family: 'Courier New', Courier, monospace;">
+  <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom border-secondary">
+    <div>
+      <h1 class="h3 fw-bold text-success mb-1" style="letter-spacing: 2px;">// SECURITY_ANALYSIS_TERMINAL</h1>
+      <span class="text-muted small">TARGET_JOB_ID: {{ job_id }}</span>
+    </div>
+    <a class="btn btn-outline-success btn-sm rounded-0 px-4 py-2 text-uppercase fw-bold shadow-none" href="{{ url_for('main.home') }}" style="letter-spacing: 1px; border-color: #198754; color: #198754;">[ &lt; UPLOAD_NEW ]</a>
   </div>
-  <div class="card-content">
-    {% if code_signing %}<pre>{{ code_signing }}</pre>{% else %}<p>No code_signing found.</p>{% endif %}
-  </div>
-</section>
-<section class="card">
-  <h2>Hardened Runtime</h2>
-  {% if hardened_runtime %}
-  <pre>{{ hardened_runtime }}</pre>
-  {% else %}
-  <p>No hardened_runtime found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Entitlements</h2>
-  {% if entitlements %}
-  <pre>{{ entitlements }}</pre>
-  {% else %}
-  <p>No entitlements found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Otool</h2>
-  {% if otool %}
-  <pre>{{ otool }}</pre>
-  {% else %}
-  <p>No otool found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>nm</h2>
-  {% if nm %}
-  <pre>{{ nm }}</pre>
-  {% else %}
-  <p>No nm found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>strings</h2>
-          <button class="collapse-btn" onclick="toggleCollapse(this)">▼</button>
 
-  {% if strings %}
-  <pre>{{ strings }}</pre>
-  {% else %}
-  <p>No strings found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>lldb</h2>
-  {% if lldb %}
-  <pre>{{ lldb }}</pre>
-  {% else %}
-  <p>No lldb found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Binary Protections (Mach-O hardening)</h2>
-  {% if binary_protections %}
-  <pre>{{ binary_protections }}</pre>
-  {% else %}
-  <p>No binary_protections found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Notarization / Gatekeeper / Quarantine</h2>
-  {% if notarization %}
-  <pre>{{ notarization }}</pre>
-  {% else %}
-  <p>No notarization found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Persistence & Auto-Start</h2>
-  {% if persistence %}
-  <pre>{{ persistence }}</pre>
-  {% else %}
-  <p>No persistence found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Keychain Usage</h2>
-  {% if keychain %}
-  <pre>{{ keychain }}</pre>
-  {% else %}
-  <p>No keychain found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Sensitive Storage</h2>
-  {% if sensitive %}
-  <pre>{{ sensitive }}</pre>
-  {% else %}
-  <p>No sensitive found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Network Security</h2>
-  {% if network %}
-  <pre>{{ network }}</pre>
-  {% else %}
-  <p>No network found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>IPC</h2>
-  {% if ipc %}
-  <pre>{{ ipc }}</pre>
-  {% else %}
-  <p>No ipc found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Dynamic Tracing</h2>
-  {% if dynamic_tracing %}
-  <pre>{{ dynamic_tracing }}</pre>
-  {% else %}
-  <p>No dynamic_tracing found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Dylib Injection / Hijacking</h2>
-  {% if dylib_injection %}
-  <pre>{{ dylib_injection }}</pre>
-  {% else %}
-  <p>No dylib_injection found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Privacy / TCC</h2>
-  {% if privacy %}
-  <pre>{{ privacy }}</pre>
-  {% else %}
-  <p>No privacy found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Update Mechanisms</h2>
-  {% if secrets %}
-  <pre>{{ secrets }}</pre>
-  {% else %}
-  <p>No secrets found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Helpers & Privileged Ops</h2>
-  {% if helpers %}
-  <pre>{{ helpers }}</pre>
-  {% else %}
-  <p>No helpers found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>URL Schemes & AppleScript/JXA</h2>
-  {% if url_schemes %}
-  <pre>{{ url_schemes }}</pre>
-  {% else %}
-  <p>No url_schemes found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Crash Handling & Logs</h2>
-  {% if crash_handling %}
-  <pre>{{ crash_handling }}</pre>
-  {% else %}
-  <p>No crash_handling found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Plugins / Extensions / Interpreters</h2>
-  {% if plugins %}
-  <pre>{{ plugins }}</pre>
-  {% else %}
-  <p>No plugins found.</p>
-  {% endif %}
-</section>
+  <!-- Vulnerabilities Assessment Table -->
+  <section class="card bg-dark text-light border-danger shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Vulnerabilities Assessment (Included by Design)</h2>
+      <button class="btn btn-sm btn-dark text-white fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
+    </div>
+    <div class="card-body bg-black text-light p-4">
+      <div class="card-content">
+        {% if vulnerabilities %}
+        {{ vulnerabilities | safe }}
+        {% else %}
+        <p class="text-muted mb-0">No vulnerabilities detected.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Overview -->
+  <section class="card bg-dark text-light border-success shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-success text-dark d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Overview &amp; Metadata</h2>
+      <button class="btn btn-sm btn-dark text-success fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
+    </div>
+    <div class="card-body bg-black text-light p-4">
+      <div class="card-content">
+        {% if analysis and '<table' in analysis %}
+        {{ analysis | safe }}
+        {% elif analysis %}
+        <pre class="mb-0 text-success font-monospace bg-black p-3 rounded-0 border border-success" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No analysis available.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div class="row">
+    {% set items = [
+      ("Code Signing", code_signing),
+      ("Hardened Runtime", hardened_runtime),
+      ("Entitlements", entitlements),
+      ("Binary Protections", binary_protections),
+      ("Secrets & Sensitive Keys", secrets),
+      ("Network Security", network),
+      ("Keychain Usage", keychain),
+      ("Sensitive Storage", sensitive),
+      ("IPC", ipc),
+      ("Dynamic Tracing", dynamic_tracing),
+      ("Dylib Injection / Hijacking", dylib_injection),
+      ("Privacy / TCC", privacy),
+      ("Update Mechanisms", updates),
+      ("Helpers & Privileged Ops", helpers),
+      ("URL Schemes", url_schemes),
+      ("Crash Handling & Logs", crash_handling),
+      ("Plugins & Extensions", plugins),
+      ("Notarization / Gatekeeper", notarization),
+      ("Persistence & Auto-Start", persistence)
+    ] %}
+
+    {% for title, content in items %}
+    <div class="col-md-6 mb-4">
+      <section class="card bg-dark text-light border-secondary shadow-lg h-100 rounded-0">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center rounded-0 py-3">
+          <h3 class="h6 mb-0 fw-bold text-uppercase text-light" style="letter-spacing: 1px;">&gt;&gt; {{ title | safe }}</h3>
+          <button class="btn btn-sm btn-dark text-light fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
+        </div>
+        <div class="card-body bg-black text-light p-3">
+          <div class="card-content">
+            {% if content %}
+              {% if (title in ['Entitlements', 'Secrets & Sensitive Keys', 'Privacy / TCC']) and '<table' in content %}
+                {{ content | safe }}
+              {% else %}
+                <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
+              {% endif %}
+            {% else %}
+            <p class="text-muted mb-0 small">No data recorded.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Extracted Strings -->
+  <section class="card bg-dark text-light border-warning shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Extracted Strings</h2>
+      <button class="btn btn-sm btn-dark text-warning fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
+    </div>
+    <div class="card-body bg-black text-light p-4">
+      <div class="card-content">
+        {% if strings %}
+        <pre class="mb-0 text-warning font-monospace bg-black p-3 rounded-0 border border-warning" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">{{ strings }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No strings found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center mb-5">
+    <a class="btn btn-outline-success rounded-0 px-5 py-3 text-uppercase fw-bold shadow-none" href="{{ url_for('main.home') }}" style="letter-spacing: 2px; border-color: #198754; color: #198754;">[ &lt; BACK_TO_UPLOAD ]</a>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const vulnSection = document.querySelector('.card.border-danger');
+    if (!vulnSection) return;
+    const table = vulnSection.querySelector('table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, colIndex) => {
+      th.style.cursor = 'pointer';
+      th.title = 'Click to sort';
+      th.addEventListener('click', () => {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        let asc = th.dataset.sortAsc !== 'true';
+        headers.forEach(h => {
+          delete h.dataset.sortAsc;
+          const indicator = h.querySelector('.sort-indicator');
+          if (indicator) indicator.remove();
+        });
+        th.dataset.sortAsc = asc;
+
+        const indicator = document.createElement('span');
+        indicator.className = 'sort-indicator ms-1';
+        indicator.textContent = asc ? ' ▲' : ' ▼';
+        th.appendChild(indicator);
+
+        rows.sort((rowA, rowB) => {
+          const cellA = rowA.querySelectorAll('td')[colIndex];
+          const cellB = rowB.querySelectorAll('td')[colIndex];
+          
+          const badgeA = cellA ? cellA.querySelector('.badge') : null;
+          const badgeB = cellB ? cellB.querySelector('.badge') : null;
+
+          const valA = badgeA ? badgeA.innerText.trim() : (cellA ? (cellA.innerText || cellA.textContent || '').trim() : '');
+          const valB = badgeB ? badgeB.innerText.trim() : (cellB ? (cellB.innerText || cellB.textContent || '').trim() : '');
+
+          const severityOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4, 'note': 5 };
+          const lowerA = valA.toLowerCase();
+          const lowerB = valB.toLowerCase();
+
+          let comp = 0;
+          if (severityOrder[lowerA] !== undefined && severityOrder[lowerB] !== undefined) {
+            comp = severityOrder[lowerA] - severityOrder[lowerB];
+          } else {
+            comp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+          }
+
+          return asc ? comp : -comp;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+      });
+    });
+  });
+</script>
+
+<style>
+  body {
+    background-color: #0b0c10 !important;
+    color: #c5c6c7 !important;
+  }
+  pre::-webkit-scrollbar {
+    width: 6px;
+  }
+  pre::-webkit-scrollbar-track {
+    background: #0b0c10;
+  }
+  pre::-webkit-scrollbar-thumb {
+    background: #198754;
+  }
+  .table {
+    color: #c5c6c7 !important;
+    border-color: #333 !important;
+  }
+  .table-striped > tbody > tr:nth-of-type(odd) > * {
+    color: #c5c6c7 !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .table-dark {
+    background-color: #1f2833 !important;
+    color: #66fcf1 !important;
+  }
+  .badge.bg-purple {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+  }
+  .badge.bg-danger {
+    background-color: #d9534f !important;
+  }
+  .badge.bg-warning {
+    background-color: #f0ad4e !important;
+    color: #000 !important;
+  }
+  .badge.bg-success {
+    background-color: #198754 !important;
+    color: #fff !important;
+  }
+  .collapse-btn {
+    background-color: #1f2833 !important;
+    color: #66fcf1 !important;
+    border: 1px solid #66fcf1 !important;
+  }
+  .collapse-btn:hover {
+    background-color: #66fcf1 !important;
+    color: #000 !important;
+  }
+  .btn:hover {
+    background-color: #198754 !important;
+    color: #fff !important;
+  }
+</style>
 {% endblock %}
