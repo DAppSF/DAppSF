@@ -76,7 +76,7 @@
         <div class="card-body bg-black text-light p-3">
           <div class="card-content">
             {% if content %}
-              {% if (title in ["Entitlements", "Secrets &amp; Sensitive Keys", "Privacy / TCC"]) and "<table" in content %}
+              {% if (title in ['Entitlements', 'Secrets &amp; Sensitive Keys', 'Privacy / TCC']) and '<table' in content %}
                 {{ content | safe }}
               {% else %}
                 <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
