@@ -22,7 +22,7 @@ def home():
 def upload():
     f = request.files.get("file")
     if not f or f.filename == "":
-        abort(400, "No file provided.")
+        abort(400, "No file provided")
     job_id = str(uuid.uuid4())
     job_path = os.path.join(current_app.config["UPLOAD_DIR"], job_id)
     os.makedirs(job_path, exist_ok=True)
