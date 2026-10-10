@@ -6,4 +6,19 @@
   </div>
   <button class="button" type="submit">Upload</button>
 </form>
+
+<div class="mt-5">
+  <h2>Previous Scans</h2>
+  {% if previous_scans %}
+    <ul>
+      {% for scan in previous_scans %}
+        <li>
+          <a href="{{ url_for('main.result', job_id=scan.job_id) }}">{{ scan.app_name }}</a> (Job ID: {{ scan.job_id }})
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No previous scans found.</p>
+  {% endif %}
+</div>
 {% endblock %}

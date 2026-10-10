@@ -11,7 +11,23 @@ bp = Blueprint("main", __name__)
 # main site of the app
 @bp.get("/")
 def home():
-    return render_template("upload.html")
+    upload_dir = current_app.config["UPLOAD_DIR"]
+    previous_scans = []
+    if os.path.exists(upload_dir):
+        for job_id in os.listdir(upload_dir):
+            job_path = os.path.join(upload_dir, job_id)
+            if os.path.isdir(job_path):
+                files = os.listdir(job_path)
+                app_name = "Unknown"
+                for f in files:
+                    if not f.endswith(".txt") and not f.endswith(".xml"):
+                        app_name = f
+                        break
+                previous_scans.append({
+                    "job_id": job_id,
+                    "app_name": app_name
+                })
+    return render_template("upload.html", previous_scans=previous_scans)
 
 # upload site of the app
 @bp.post("/upload")
