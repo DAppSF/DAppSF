@@ -460,7 +460,6 @@ class Analyzer:
         has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower()
         
         has_touchid_api = "LocalAuthentication" in strings_text or "LAContext" in strings_text
-        # Insecure TouchID if LAContext is used without proper fallback or policy evaluation handling
         insecure_touchid = has_touchid_api and not ("kLAPolicyDeviceOwnerAuthentication" in strings_text or "fallbackTitle" in strings_text)
 
         has_ats = self.plist_data.get("NSAppTransportSecurity", {}).get("NSAllowsArbitraryLoads", False) or "NSAllowsArbitraryLoads" in str(self.plist_data)
