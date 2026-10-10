@@ -5,6 +5,7 @@ import zipfile
 import plistlib
 import subprocess
 import logging
+import lzma
 
 logger = logging.getLogger("dappsf.analysis")
 if not logger.handlers:
@@ -251,6 +252,29 @@ class Analyzer:
             protections.append(f"Error inspecting binary protections: {e}")
 
         return "\n".join(protections)
+
+    def _run_frida_ssl_pinning_check(self) -> str:
+        frida_dir = os.path.join(os.getcwd(), "frida")
+        inject_xz = os.path.join(frida_dir, "frida-inject-17.23.3-macos-arm64.xz")
+        inject_bin = os.path.join(frida_dir, "frida-inject")
+
+        report = ["Frida SSL Pinning Dynamic Check Integration:"]
+        if os.path.isfile(inject_xz) and not os.path.isfile(inject_bin):
+            try:
+                with lzma.open(inject_xz, "rb") as f_in, open(inject_bin, "wb") as f_out:
+                    f_out.write(f_in.read())
+                os.chmod(inject_bin, 0o755)
+                report.append("Successfully extracted bundled frida-inject binary.")
+            except Exception as e:
+                report.append(f"Failed to extract frida-inject: {e}")
+
+        if os.path.isfile(inject_bin):
+            report.append(f"frida-inject tool available at: {inject_bin}")
+            report.append("Status: Ready to instrument binary or hook SSL pinning APIs (SecTrustEvaluate, NSURLSession, TrustKit) dynamically.")
+        else:
+            report.append("frida-inject binary not found or could not be prepared.")
+
+        return "\n".join(report)
 
     def _scan_secrets(self, strings_text: str) -> str:
         patterns = {
@@ -630,5 +654,8 @@ class Analyzer:
 
         crash_handling = "Crash Handling & Diagnostics:\n" + ("Crash reporting symbols or frameworks detected (Firebase/Crashlytics/PLCrashReporter)." if ("crashlytics" in strings_text.lower() or "plcrashreporter" in strings_text.lower()) else "No common 3rd party crash reporting frameworks detected.")
         self._log_and_write("crash_handling.txt", "Crash Handling", crash_handling)
+
+        frida_ssl_report = self._run_frida_ssl_pinning_check()
+        self._log_and_write("frida_ssl_pinning.txt", "Frida SSL Pinning Check", frida_ssl_report)
 
         logger.info("Analysis completed successfully for job %s", self.job_id)
