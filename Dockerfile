@@ -16,4 +16,4 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "--timeout", "300", "--log-level", "warning", "wsgi:app"]
+CMD ["gunicorn", "-w", "2", "--threads", "4", "-b", "0.0.0.0:8000", "--timeout", "0", "--log-level", "warning", "wsgi:app"]

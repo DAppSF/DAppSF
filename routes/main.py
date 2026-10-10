@@ -11,10 +11,6 @@ bp = Blueprint("main", __name__)
 # main site of the app
 @bp.get("/")
 def home():
-    # Inside your upload or scan function:
-    logger.info("New sample uploaded: Test.app")
-    logger.warning("Unsigned binary detected!")
-    logger.error("Failed to parse Info.plist")
     return render_template("upload.html")
 
 # upload site of the app
