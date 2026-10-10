@@ -259,28 +259,49 @@ class Analyzer:
             "Generic Private Key": r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
             "Generic Password / Secret Assignment": r"(?i)(?:api_key|access_token|secret_key|password)\s*=\s*['\"][A-Za-z0-9+/=_\-\.]{8,}['\"]",
         }
-        results = []
+        rows = []
         for name, pat in patterns.items():
             matches = set(re.findall(pat, strings_text))
             if matches:
-                results.append(f"[{name}]:")
                 for m in list(matches)[:5]:
-                    results.append(f"  - {m}")
+                    rows.append((name, m))
 
         for p in self._get_all_files():
             if "GoogleService-Info.plist" in p:
-                results.append(f"[Discovered Firebase Config File]: {p}")
+                rows.append(("Discovered Firebase Config File", p))
                 try:
                     with open(p, "rb") as gfp:
                         gdata = plistlib.load(gfp)
                     for key in ("API_KEY", "DATABASE_URL", "STORAGE_BUCKET", "PROJECT_ID", "BUNDLE_ID", "GOOGLE_APP_ID"):
                         val = gdata.get(key)
                         if val:
-                            results.append(f"  {key}: {val}")
+                            rows.append((f"Firebase {key}", str(val)))
                 except Exception as ge:
-                    results.append(f"  Error parsing config file: {ge}")
+                    rows.append(("Firebase Config Parse Error", str(ge)))
 
-        return "\n".join(results) if results else "No hardcoded secrets or API keys detected."
+        if not rows:
+            return "No hardcoded secrets or API keys detected."
+
+        html = [
+            "<div class=\"table-responsive\">",
+            "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
+            "  <thead class=\"table-dark\">",
+            "    <tr>",
+            "      <th style=\"width: 40%\">Secret Category</th>",
+            "      <th style=\"width: 60%\">Detected Value / Detail</th>",
+            "    </tr>",
+            "  </thead>",
+            "  <tbody>"
+        ]
+        for cat, val in rows:
+            html.append(f"    <tr>")
+            html.append(f"      <td><strong>{cat}</strong></td>")
+            html.append(f"      <td><span class=\"text-light font-monospace small\">{val}</span></td>")
+            html.append(f"    </tr>")
+        html.append("  </tbody>")
+        html.append("</table>")
+        html.append("</div>")
+        return "\n".join(html)
 
     def _scan_network_endpoints(self, strings_text: str) -> str:
         urls = set(re.findall(r"https?://[a-zA-Z0-9_\-\.]+\.[a-zA-Z]{2,}(?::\d+)?(?:/[^\s\"'<>]*)?", strings_text))
@@ -359,7 +380,7 @@ class Analyzer:
             for k, v in self.plist_data.items():
                 if k.endswith("UsageDescription") or k.startswith("NS"):
                     if "UsageDescription" in k:
-                        privacy_findings.append(f"{k}: {v}")
+                        privacy_findings.append((k, str(v)))
             url_types = self.plist_data.get("CFBundleURLTypes", [])
             if isinstance(url_types, list):
                 for ut in url_types:
@@ -388,8 +409,31 @@ class Analyzer:
                     except Exception:
                         pass
 
+        privacy_text = "No TCC Privacy Usage Descriptions found in Info.plist."
+        if privacy_findings:
+            html = [
+                "<div class=\"table-responsive\">",
+                "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
+                "  <thead class=\"table-dark\">",
+                "    <tr>",
+                "      <th style=\"width: 40%\">Privacy Key</th>",
+                "      <th style=\"width: 60%\">Usage Description</th>",
+                "    </tr>",
+                "  </thead>",
+                "  <tbody>"
+            ]
+            for pk, pv in privacy_findings:
+                html.append(f"    <tr>")
+                html.append(f"      <td><strong>{pk}</strong></td>")
+                html.append(f"      <td><span class=\"text-light\">{pv}</span></td>")
+                html.append(f"    </tr>")
+            html.append("  </tbody>")
+            html.append("</table>")
+            html.append("</div>")
+            privacy_text = "\n".join(html)
+
         return {
-            "privacy": "\n".join(privacy_findings) if privacy_findings else "No TCC Privacy Usage Descriptions found in Info.plist.",
+            "privacy": privacy_text,
             "url_schemes": "\n".join(url_schemes) if url_schemes else "No custom URL schemes declared.",
             "helpers": "\n".join(helpers) if helpers else "No bundled helper tools or XPC services detected.",
             "plugins": "\n".join(plugins) if plugins else "No embedded plugins or app extensions detected.",
@@ -414,7 +458,11 @@ class Analyzer:
         has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text
         has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text
         has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower()
-        has_touchid = "LocalAuthentication" in strings_text or "LAContext" in strings_text
+        
+        has_touchid_api = "LocalAuthentication" in strings_text or "LAContext" in strings_text
+        # Insecure TouchID if LAContext is used without proper fallback or policy evaluation handling
+        insecure_touchid = has_touchid_api and not ("kLAPolicyDeviceOwnerAuthentication" in strings_text or "fallbackTitle" in strings_text)
+
         has_ats = self.plist_data.get("NSAppTransportSecurity", {}).get("NSAllowsArbitraryLoads", False) or "NSAllowsArbitraryLoads" in str(self.plist_data)
 
         vulns_data = [
@@ -431,7 +479,7 @@ class Analyzer:
             ("SQL Injection Attack", "Raw SQL query strings or insecure database execution APIs found." if has_sql else "No raw SQL execution indicators found.", "Critical" if has_sql else "Low"),
             ("Command Injection Attack", "Unsafe external command execution APIs (system/popen/NSTask/Process) detected." if has_cmd else "No unsafe command execution APIs detected.", "Critical" if has_cmd else "Low"),
             ("Insecure SSL Pinning", "Disabled certificate validation or custom trust evaluation bypass patterns found." if not has_ssl_pinning else "SSL pinning / trust evaluation functions present.", "High" if not has_ssl_pinning else "Low"),
-            ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation." if has_touchid else "No TouchID / LocalAuthentication implementation found.", "High" if has_touchid else "Low"),
+            ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation." if insecure_touchid else ("TouchID / LocalAuthentication properly implemented or absent." if has_touchid_api else "No TouchID implementation found."), "High" if insecure_touchid else "Low"),
             ("Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified." if has_ats else "App Transport Security enforced securely.", "High" if has_ats else "Low")
         ]
 
