@@ -1,4 +1,5 @@
 import os, subprocess
+
 class Analyzer:
     def __init__(self, *, job_id: str, job_path: str):
         self.job_id = job_id
@@ -16,13 +17,21 @@ class Analyzer:
         self._write("ls -l output:\n" + result.stdout + "\n")
 
         # real analysis commands
-        strings_out = subprocess.run(
-            ["strings", "-a", file_path],
-            capture_output=True,
-            text=True
-        )
+        try:
+            strings_out = subprocess.run(
+                ["strings", "-a", file_path],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            strings_text = strings_out.stdout
+        except subprocess.TimeoutExpired:
+            strings_text = "Strings extraction timed out."
+        except Exception as e:
+            strings_text = f"Error running strings: {e}"
+
         with open(os.path.join(self.job_path, "strings.txt"), "w") as f:
-            f.write(strings_out.stdout)
+            f.write(strings_text)
 
         with open(os.path.join(self.job_path, "secrets.txt"), "w") as f:
             f.write("No secrets found.")
@@ -35,4 +44,3 @@ class Analyzer:
 
         with open(os.path.join(self.job_path, "entitlements.xml"), "w") as f:
             f.write("<plist>dummy entitlements</plist>")
-
