@@ -49,7 +49,7 @@
       ("Hardened Runtime", hardened_runtime),
       ("Entitlements", entitlements),
       ("Binary Protections", binary_protections),
-      ("Secrets &amp; Sensitive Keys", secrets),
+      ("Secrets & Sensitive Keys", secrets),
       ("Network Security", network),
       ("Keychain Usage", keychain),
       ("Sensitive Storage", sensitive),
@@ -58,12 +58,12 @@
       ("Dylib Injection / Hijacking", dylib_injection),
       ("Privacy / TCC", privacy),
       ("Update Mechanisms", updates),
-      ("Helpers &amp; Privileged Ops", helpers),
+      ("Helpers & Privileged Ops", helpers),
       ("URL Schemes", url_schemes),
-      ("Crash Handling &amp; Logs", crash_handling),
-      ("Plugins &amp; Extensions", plugins),
+      ("Crash Handling & Logs", crash_handling),
+      ("Plugins & Extensions", plugins),
       ("Notarization / Gatekeeper", notarization),
-      ("Persistence &amp; Auto-Start", persistence)
+      ("Persistence & Auto-Start", persistence)
     ] %}
 
     {% for title, content in items %}
@@ -76,7 +76,7 @@
         <div class="card-body bg-black text-light p-3">
           <div class="card-content">
             {% if content %}
-              {% if (title in ['Entitlements', 'Secrets &amp; Sensitive Keys', 'Privacy / TCC']) and '<table' in content %}
+              {% if (title in ['Entitlements', 'Secrets & Sensitive Keys', 'Privacy / TCC']) and '<table' in content %}
                 {{ content | safe }}
               {% else %}
                 <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
