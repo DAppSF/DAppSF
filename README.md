@@ -1,22 +1,90 @@
-# DAppSF - Desktop Application Security Framework
-
-DAppSF (Desktop Application Security Framework) is a lightweight, web-based static analysis platform tailored for macOS and desktop application security assessments. It allows security analysts and developers to upload application bundles and binaries to inspect code signing, Mach-O binary hardening, embedded strings, entitlements, and potential security weaknesses.
 
 ---
 
-## Features
+## Getting Started
 
-- **Upload & Automated Inspection**: Easily upload `.app` packages, archives, or binaries via an intuitive web interface.
-- **Static Analysis Checks**:
-  - **Code Signing & Notarization**: Validate digital signatures and Gatekeeper compliance.
-  - **Mach-O Protections**: Inspect binary hardening flags (PIE, ARC, stack canaries, restrict sections).
-  - **Entitlements**: Extract and evaluate macOS application sandbox permissions and dangerous entitlements.
-  - **Strings & Secrets**: Automated extraction of embedded strings, hardcoded secrets, and network endpoints.
-  - **Structural Verification**: Inspect bundle layouts, helper tools, and plist configurations.
-- **Collapsible Reporting UI**: Responsive, dark-mode aware web dashboard designed to present verbose analysis output cleanly.
-- **Docker-Ready**: Packaged with a slim Python base container and standard binary analysis utilities (`binutils`, `file`).
+### Prerequisites
+
+- **Python 3.12+**
+- **System Utilities**: `binutils` (providing `strings`), `file`
+- *(Optional)* **Docker**
+
+### Local Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/dappsf.git
+   cd dappsf
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the development server:**
+   ```bash
+   python app.py
+   ```
+   Open your browser at `http://localhost:8000`.
 
 ---
 
-## Architecture & Project Structure
+## Running with Docker
 
+### Using the Pre-configured Container
+
+1. **Build the Docker image:**
+   ```bash
+   docker build -t dappsf:latest .
+   ```
+
+2. **Run the container:**
+   ```bash
+   docker run -d \
+     -p 8000:8000 \
+     -v dappsf_uploads:/data/uploads \
+     --name dappsf \
+     dappsf:latest
+   ```
+
+Access the dashboard at `http://localhost:8000`.
+
+---
+
+## Configuration
+
+DAppSF can be configured via environment variables:
+
+| Variable | Description | Default |
+|---|---|---|
+| `UPLOAD_DIR` | Directory where uploaded files and analysis results are stored | `/data/uploads` |
+| `RESULT_FILE` | Default filename for aggregated summary text | `analysis.txt` |
+| `PYTHONPATH` | Python import path | `/app` |
+
+---
+
+## Usage Workflow
+
+1. Navigate to `http://localhost:8000/`.
+2. Choose a binary file or application archive (up to 1 GB) and click **Upload**.
+3. Once processed, you will be redirected to `/result/<job_id>`.
+4. Review individual report sections such as **Code Signing**, **Entitlements**, **Mach-O Protections**, and **Strings**. Sections can be expanded or collapsed to focus on relevant findings.
+
+---
+
+## CI/CD & Releases
+
+The repository contains an automated GitHub Actions workflow in `.github/workflows/release.yml` that builds multi-architecture Docker images (`linux/amd64`, `linux/arm64`) and publishes them to the GitHub Container Registry (`ghcr.io`) upon pushing to the `release` branch.
+
+---
+
+## License
+
+This project is licensed under the terms of the MIT License.
