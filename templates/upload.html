@@ -1,7 +1,9 @@
 {% extends 'base.html' %}{% block body %}
 <h1>Upload & Analyze</h1>
 <form action="{{ url_for('main.upload') }}" method="post" enctype="multipart/form-data" class="card">
-  <input type="file" id="file" name="file"/>
+  <div>
+    <input type="file" id="file" name="file"/>
+  </div>
   <button class="button" type="submit">Upload</button>
 </form>
 {% endblock %}
