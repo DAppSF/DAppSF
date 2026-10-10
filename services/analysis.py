@@ -27,9 +27,15 @@ class Analyzer:
     def _get_all_files(self) -> list[str]:
         if self._all_files_cache is None:
             files_list = []
+            skip_dirs = {".git", "node_modules", "__pycache__", "venv", "env"}
             for root, dirs, files in os.walk(self.job_path, followlinks=False):
+                dirs[:] = [d for d in dirs if d not in skip_dirs]
                 for f in files:
                     files_list.append(os.path.join(root, f))
+                    if len(files_list) > 5000:  # Safety cap for performance
+                        break
+                if len(files_list) > 5000:
+                    break
             self._all_files_cache = files_list
         return self._all_files_cache
 
@@ -130,15 +136,15 @@ class Analyzer:
                 ["strings", "-n", "6", self.main_binary],
                 capture_output=True,
                 text=True,
-                timeout=3,
+                timeout=2,
                 errors="replace"
             )
             lines = res.stdout.splitlines()
-            if len(lines) > 2000:
-                lines = lines[:2000] + ["\n... (truncated for performance)"]
+            if len(lines) > 1000:
+                lines = lines[:1000] + ["\n... (truncated for performance)"]
             return "\n".join(lines)
         except subprocess.TimeoutExpired:
-            return "strings command timed out after 3 seconds."
+            return "strings command timed out after 2 seconds."
         except Exception as e:
             return f"Error running strings: {e}"
 
@@ -171,7 +177,7 @@ class Analyzer:
         if self.main_binary and os.path.isfile(self.main_binary):
             try:
                 with open(self.main_binary, "rb") as bf:
-                    content = bf.read(1 * 1024 * 1024)
+                    content = bf.read(512 * 1024)
 
                 xml_start = content.find(b"<?xml")
                 if xml_start != -1:
@@ -259,11 +265,10 @@ class Analyzer:
         bundled_certs = []
         all_paths = self._get_all_files()
         
-        for p in all_paths:
+        for p in all_paths[:1000]:  # limit for speed
             lower_p = p.lower()
-            if "contents/frameworks" in lower_p or "frameworks" in lower_p:
-                if ".framework" in p or lower_p.endswith((".dylib", ".framework")):
-                    bundled_frameworks.append(os.path.basename(p))
+            if "frameworks" in lower_p and (".framework" in p or lower_p.endswith((".dylib", ".framework"))):
+                bundled_frameworks.append(os.path.basename(p))
             if lower_p.endswith((".cer", ".crt", ".der", ".pem")):
                 bundled_certs.append(os.path.basename(p))
 
@@ -290,9 +295,9 @@ class Analyzer:
             report.append("  - No explicit evaluation or challenge handling APIs matched in strings.")
 
         if has_trustkit or (bundled_certs and found_apis):
-            report.append("\nConclusion: Custom certificate validation / SSL pinning appears PROPERLY CONFIGURED (TrustKit or explicit certs + evaluation APIs present).")
+            report.append("\nConclusion: Custom certificate validation / SSL pinning appears PROPERLY CONFIGURED.")
         elif found_apis or bundled_certs:
-            report.append("\nConclusion: Partial evidence of certificate handling or challenge delegation, but complete pinning implementation could not be verified statically.")
+            report.append("\nConclusion: Partial evidence of certificate handling or challenge delegation.")
         else:
             report.append("\nConclusion: Custom certificate validation / SSL pinning NOT DETECTED or missing.")
 
@@ -314,7 +319,7 @@ class Analyzer:
                 for m in list(matches)[:5]:
                     rows.append((name, m))
 
-        for p in self._get_all_files():
+        for p in self._get_all_files()[:500]:
             if "GoogleService-Info.plist" in p:
                 rows.append(("Discovered Firebase Config File", p))
                 try:
@@ -383,7 +388,7 @@ class Analyzer:
             if kw.lower() in strings_text.lower():
                 storage_findings.append(f"Storage reference detected: {kw}")
 
-        for p in self._get_all_files():
+        for p in self._get_all_files()[:500]:
             if p.endswith((".sqlite", ".db", ".realm", ".momd", ".leveldb")):
                 storage_findings.append(f"Storage resource bundled: {p}")
 
@@ -527,15 +532,15 @@ class Analyzer:
         has_keychain = "SecItemAdd" in strings_text or "kSecClassGenericPassword" in strings_text
         
         all_files = self._get_all_files()
-        all_files_str = "".join(all_files)
+        all_files_str = "".join(all_files[:300])
         has_firebase = "Firebase" in strings_text or "GoogleService-Info.plist" in all_files_str
-        has_plists = any(p.endswith(".plist") for p in all_files)
+        has_plists = any(p.endswith(".plist") for p in all_files[:300])
         has_webview = "WKWebView" in strings_text or "WebView" in strings_text or "evaluateJavaScript" in strings_text
         has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text or "sqlite3_exec" in strings_text
         has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text or "Process" in strings_text
         
-        has_trustkit = any("trustkit" in f.lower() for f in all_files) or "TrustKit" in strings_text
-        bundled_certs_exist = any(p.lower().endswith((".cer", ".crt", ".der", ".pem")) for p in all_files)
+        has_trustkit = any("trustkit" in f.lower() for f in all_files[:300]) or "TrustKit" in strings_text
+        bundled_certs_exist = any(p.lower().endswith((".cer", ".crt", ".der", ".pem")) for p in all_files[:300])
         has_eval_apis = "SecTrustEvaluate" in strings_text or "SecTrustEvaluateWithError" in strings_text or "URLSession:didReceiveChallenge:completionHandler:" in strings_text
         
         ssl_pinning_configured = has_trustkit or (bundled_certs_exist and has_eval_apis)
