@@ -139,7 +139,7 @@ class Analyzer:
             return f"Error running strings: {e}"
 
     def _extract_entitlements_and_codesign(self) -> tuple[str, str, str]:
-        entitlements_xml = "No entitlements found."
+        entitlements_text = "No entitlements found."
         codesign_info = []
         hardened_info = []
 
@@ -173,8 +173,18 @@ class Analyzer:
                 if xml_start != -1:
                     xml_end = content.find(b"</plist>", xml_start)
                     if xml_end != -1:
-                        entitlements_xml = content[xml_start:xml_end + 8].decode("utf-8", errors="replace")
+                        xml_bytes = content[xml_start:xml_end + 8]
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
+                        try:
+                            plist_dict = plistlib.loads(xml_bytes)
+                            lines = []
+                            lines.append(f"{'Entitlement Key':<55} | {'Value'}")
+                            lines.append("-" * 80)
+                            for k, v in plist_dict.items():
+                                lines.append(f"{str(k):<55} | {str(v)}")
+                            entitlements_text = "\n".join(lines)
+                        except Exception:
+                            entitlements_text = xml_bytes.decode("utf-8", errors="replace")
 
                 if b"com.apple.security.cs." in content:
                     hardened_info.append("Hardened Runtime flags identified:")
@@ -192,7 +202,7 @@ class Analyzer:
                 codesign_info.append(f"Error scanning binary for signatures: {e}")
                 hardened_info.append(f"Error scanning binary for hardened runtime: {e}")
 
-        return "\n".join(codesign_info), "\n".join(hardened_info), entitlements_xml
+        return "\n".join(codesign_info), "\n".join(hardened_info), entitlements_text
 
     def _check_binary_protections(self, strings_text: str) -> str:
         if not self.main_binary or not os.path.isfile(self.main_binary):
