@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% block body %}
-<h1>Upload & Analyze</h1>
+
+<div class="container my-5" style="max-width: 1280px; font-family: 'Courier New', Courier, monospace;">
+  <h1 class="h3 fw-bold text-success mb-4" style="letter-spacing: 2px;">// UPLOAD &amp; ANALYZE</h1>
 <form action="{{ url_for('main.upload') }}" method="post" enctype="multipart/form-data" class="card">
   <div>
     <input type="file" id="file" name="file"/>
@@ -21,5 +23,6 @@
   {% else %}
     <p>No previous scans found.</p>
   {% endif %}
+</div>
 </div>
 {% endblock %}
