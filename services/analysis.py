@@ -21,6 +21,16 @@ class Analyzer:
         self.app_dir = None
         self.main_binary = None
         self.plist_data = {}
+        self._all_files_cache = None
+
+    def _get_all_files(self) -> list[str]:
+        if self._all_files_cache is None:
+            files_list = []
+            for root, dirs, files in os.walk(self.job_path):
+                for f in files:
+                    files_list.append(os.path.join(root, f))
+            self._all_files_cache = files_list
+        return self._all_files_cache
 
     def _write_file(self, filename: str, content: str) -> None:
         p = os.path.join(self.job_path, filename)
@@ -47,14 +57,18 @@ class Analyzer:
                 logger.error("Failed to unpack zip: %s", e)
 
     def _locate_targets(self, initial_file: str) -> None:
+        all_paths = self._get_all_files()
+
         # Search for .app bundle
-        for root, dirs, files in os.walk(self.job_path):
-            for d in dirs:
-                if d.endswith(".app"):
-                    self.app_dir = os.path.join(root, d)
+        for p in all_paths:
+            if ".app" in p:
+                parts = p.split(os.sep)
+                for i, part in enumerate(parts):
+                    if part.endswith(".app"):
+                        self.app_dir = os.sep.join(parts[:i+1])
+                        break
+                if self.app_dir:
                     break
-            if self.app_dir:
-                break
 
         # Check for Info.plist
         plist_path = None
@@ -62,10 +76,10 @@ class Analyzer:
             candidate = os.path.join(self.app_dir, "Contents", "Info.plist")
             if os.path.isfile(candidate):
                 plist_path = candidate
-        else:
-            for root, dirs, files in os.walk(self.job_path):
-                if "Info.plist" in files:
-                    plist_path = os.path.join(root, "Info.plist")
+        if not plist_path:
+            for p in all_paths:
+                if os.path.basename(p) == "Info.plist":
+                    plist_path = p
                     break
 
         if plist_path and os.path.isfile(plist_path):
@@ -85,30 +99,27 @@ class Analyzer:
         if not self.main_binary and self.app_dir:
             macos_dir = os.path.join(self.app_dir, "Contents", "MacOS")
             if os.path.isdir(macos_dir):
-                files = [os.path.join(macos_dir, f) for f in os.listdir(macos_dir)]
-                files = [f for f in files if os.path.isfile(f)]
-                if files:
-                    self.main_binary = files[0]
+                try:
+                    mfiles = [os.path.join(macos_dir, f) for f in os.listdir(macos_dir) if os.path.isfile(os.path.join(macos_dir, f))]
+                    if mfiles:
+                        self.main_binary = mfiles[0]
+                except Exception:
+                    pass
 
         if not self.main_binary:
             if os.path.isfile(initial_file) and not initial_file.endswith(".zip"):
                 self.main_binary = initial_file
             else:
-                for root, dirs, files in os.walk(self.job_path):
-                    for f in files:
-                        p = os.path.join(root, f)
-                        if os.path.isfile(p) and not p.endswith(".txt") and not p.endswith(".xml") and not p.endswith(".zip"):
-                            try:
-                                with open(p, "rb") as check_f:
-                                    header = check_f.read(4)
-                                    # Mach-O magic numbers: MH_MAGIC, MH_CIGAM, MH_MAGIC_64, MH_CIGAM_64, FAT_MAGIC
-                                    if header in (b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"):
-                                        self.main_binary = p
-                                        break
-                            except Exception:
-                                pass
-                    if self.main_binary:
-                        break
+                for p in all_paths:
+                    if not p.endswith((".txt", ".xml", ".zip", ".plist", ".png", ".icns", ".car")):
+                        try:
+                            with open(p, "rb") as check_f:
+                                header = check_f.read(4)
+                                if header in (b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"):
+                                    self.main_binary = p
+                                    break
+                        except Exception:
+                            pass
 
     def _extract_strings(self) -> str:
         if not self.main_binary or not os.path.isfile(self.main_binary):
@@ -118,12 +129,12 @@ class Analyzer:
                 ["strings", "-a", self.main_binary],
                 capture_output=True,
                 text=True,
-                timeout=180,
+                timeout=120,
                 errors="replace"
             )
             return res.stdout
         except subprocess.TimeoutExpired:
-            return "strings command timed out after 180 seconds."
+            return "strings command timed out after 120 seconds."
         except Exception as e:
             return f"Error running strings: {e}"
 
@@ -132,7 +143,6 @@ class Analyzer:
         codesign_info = []
         hardened_info = []
 
-        # Check CodeResources
         code_resources = None
         if self.app_dir:
             cr_path = os.path.join(self.app_dir, "Contents", "_CodeSignature", "CodeResources")
@@ -154,13 +164,11 @@ class Analyzer:
         else:
             codesign_info.append("No _CodeSignature/CodeResources bundle signature directory detected.")
 
-        # Check embedded binary signature / entitlements
         if self.main_binary and os.path.isfile(self.main_binary):
             try:
                 with open(self.main_binary, "rb") as bf:
-                    content = bf.read()
+                    content = bf.read(2 * 1024 * 1024) # Read first 2MB to avoid memory/time overhead
 
-                # Look for embedded plist / entitlements XML
                 xml_start = content.find(b"<?xml")
                 if xml_start != -1:
                     xml_end = content.find(b"</plist>", xml_start)
@@ -168,7 +176,6 @@ class Analyzer:
                         entitlements_xml = content[xml_start:xml_end + 8].decode("utf-8", errors="replace")
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
 
-                # Check for CS_RUNTIME / Hardened runtime signatures
                 if b"com.apple.security.cs." in content:
                     hardened_info.append("Hardened Runtime flags identified:")
                     for match in set(re.findall(rb"com\.apple\.security\.cs\.[a-zA-Z0-9_\-]+", content)):
@@ -176,7 +183,6 @@ class Analyzer:
                 else:
                     hardened_info.append("No explicit com.apple.security.cs.* hardened runtime capabilities found in executable.")
 
-                # Code signature magic: 0xfade0cc0 (CSMAGIC_EMBEDDED_SIGNATURE)
                 if b"\xfa\xde\x0c\xc0" in content or b"\xc0\x0c\xde\xfa" in content:
                     codesign_info.append("Embedded Mach-O Code Signature SuperBlob magic found (CSMAGIC_EMBEDDED_SIGNATURE).")
                 else:
@@ -197,23 +203,18 @@ class Analyzer:
             with open(self.main_binary, "rb") as f:
                 data = f.read(16384)
 
-            # PIE detection (MH_PIE is 0x00200000 at header flags)
             is_pie = (b"\x20\x00\x00" in data) or ("PIE" in strings_text)
             protections.append(f"Position Independent Executable (PIE): {'ENABLED' if is_pie else 'NOT CONFIRMED'}")
 
-            # Stack canaries
             has_canary = "___stack_chk_guard" in strings_text or "___stack_chk_fail" in strings_text
             protections.append(f"Stack Canary Protection: {'ENABLED (___stack_chk_guard detected)' if has_canary else 'DISABLED / NOT DETECTED'}")
 
-            # ARC (Automatic Reference Counting)
             has_arc = "_objc_release" in strings_text or "_objc_retain" in strings_text
             protections.append(f"Automatic Reference Counting (ARC): {'ENABLED' if has_arc else 'NOT DETECTED'}")
 
-            # Restrict section
             has_restrict = b"__RESTRICT" in data or "__restrict" in strings_text
             protections.append(f"Restrict Segment (__RESTRICT): {'PRESENT' if has_restrict else 'NOT PRESENT'}")
 
-            # Encryption (LC_ENCRYPTION_INFO)
             has_crypt = b"\x21\x00\x00\x00" in data or b"\x2c\x00\x00\x00" in data
             protections.append(f"Mach-O Encryption Info (LC_ENCRYPTION_INFO): {'PRESENT' if has_crypt else 'NOT ENCRYPTED'}")
 
@@ -239,21 +240,18 @@ class Analyzer:
                 for m in list(matches)[:5]:
                     results.append(f"  - {m}")
 
-        # Check for and parse GoogleService-Info.plist or configuration secrets
-        for root, dirs, files in os.walk(self.job_path):
-            for file in files:
-                if "GoogleService-Info.plist" in file:
-                    p = os.path.join(root, file)
-                    results.append(f"[Discovered Firebase Config File]: {p}")
-                    try:
-                        with open(p, "rb") as gfp:
-                            gdata = plistlib.load(gfp)
-                        for key in ("API_KEY", "DATABASE_URL", "STORAGE_BUCKET", "PROJECT_ID", "BUNDLE_ID", "GOOGLE_APP_ID"):
-                            val = gdata.get(key)
-                            if val:
-                                results.append(f"  {key}: {val}")
-                    except Exception as ge:
-                        results.append(f"  Error parsing {file}: {ge}")
+        for p in self._get_all_files():
+            if "GoogleService-Info.plist" in p:
+                results.append(f"[Discovered Firebase Config File]: {p}")
+                try:
+                    with open(p, "rb") as gfp:
+                        gdata = plistlib.load(gfp)
+                    for key in ("API_KEY", "DATABASE_URL", "STORAGE_BUCKET", "PROJECT_ID", "BUNDLE_ID", "GOOGLE_APP_ID"):
+                        val = gdata.get(key)
+                        if val:
+                            results.append(f"  {key}: {val}")
+                except Exception as ge:
+                    results.append(f"  Error parsing config file: {ge}")
 
         return "\n".join(results) if results else "No hardcoded secrets or API keys detected."
 
@@ -289,11 +287,9 @@ class Analyzer:
             if kw.lower() in strings_text.lower():
                 storage_findings.append(f"Storage reference detected: {kw}")
 
-        # Look for local databases or storage files in bundle
-        for root, dirs, files in os.walk(self.job_path):
-            for f in files:
-                if f.endswith((".sqlite", ".db", ".realm", ".momd", ".leveldb")):
-                    storage_findings.append(f"Storage resource bundled: {os.path.join(root, f)}")
+        for p in self._get_all_files():
+            if p.endswith((".sqlite", ".db", ".realm", ".momd", ".leveldb")):
+                storage_findings.append(f"Storage resource bundled: {p}")
 
         sensitive_storage = "\n".join(storage_findings) if storage_findings else "No local database or storage artifacts detected."
         return keychain_report, sensitive_storage
@@ -332,14 +328,11 @@ class Analyzer:
         updates = []
         persistence = []
 
-        # Info.plist checks
         if self.plist_data:
-            # Privacy / TCC
             for k, v in self.plist_data.items():
                 if k.endswith("UsageDescription") or k.startswith("NS"):
                     if "UsageDescription" in k:
                         privacy_findings.append(f"{k}: {v}")
-            # URL Schemes
             url_types = self.plist_data.get("CFBundleURLTypes", [])
             if isinstance(url_types, list):
                 for ut in url_types:
@@ -347,13 +340,11 @@ class Analyzer:
                     name = ut.get("CFBundleURLName", "Custom URL")
                     url_schemes.append(f"{name}: {schemes}")
 
-            # Update checks (e.g., Sparkle)
             if "SUFeedURL" in self.plist_data:
                 updates.append(f"Sparkle update feed URL: {self.plist_data.get('SUFeedURL')}")
             if "SUEnableAutomaticChecks" in self.plist_data:
                 updates.append(f"Automatic update checks enabled: {self.plist_data.get('SUEnableAutomaticChecks')}")
 
-        # Directory structure checks
         if self.app_dir:
             contents_dir = os.path.join(self.app_dir, "Contents")
             for sub, target_list in [
@@ -364,8 +355,11 @@ class Analyzer:
             ]:
                 check_path = os.path.join(contents_dir, sub)
                 if os.path.isdir(check_path):
-                    for item in os.listdir(check_path):
-                        target_list.append(f"{sub}/{item}")
+                    try:
+                        for item in os.listdir(check_path):
+                            target_list.append(f"{sub}/{item}")
+                    except Exception:
+                        pass
 
         return {
             "privacy": "\n".join(privacy_findings) if privacy_findings else "No TCC Privacy Usage Descriptions found in Info.plist.",
@@ -424,13 +418,15 @@ class Analyzer:
             vulns.append("Insecure Data Storage in Keychain: Standard or no insecure keychain attributes detected.")
 
         # 8. Insecure Firebase Database
-        if "firebaseio.com" in strings_text or any("Firebase" in f for f in os.listdir(self.job_path) if os.path.isdir(os.path.join(self.job_path, f))):
+        has_firebase = "firebaseio.com" in strings_text or any("Firebase" in p for p in self._get_all_files())
+        if has_firebase:
             vulns.append("Insecure Firebase Database: Firebase integration detected; verify database security rules.")
         else:
             vulns.append("Insecure Firebase Database: No Firebase database endpoints detected.")
 
         # 9. Insecure Local Data Storage in plist files
-        if any(f.endswith(".plist") for root, dirs, files in os.walk(self.job_path) for f in files if f != "Info.plist"):
+        has_extra_plists = any(p.endswith(".plist") and not p.endswith("Info.plist") for p in self._get_all_files())
+        if has_extra_plists:
             vulns.append("Insecure Local Data Storage in plist files: Additional plist configuration/storage files found.")
         else:
             vulns.append("Insecure Local Data Storage in plist files: No extra local plist files found.")
