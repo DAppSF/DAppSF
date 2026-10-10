@@ -177,18 +177,13 @@ class Analyzer:
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
                         try:
                             plist_dict = plistlib.loads(xml_bytes)
-                            html_lines = [
-                                "<table class=\"table table-striped table-bordered\" style=\"width:100%; font-family:monospace;\">",
-                                "  <thead class=\"table-dark\">",
-                                "    <tr><th>Entitlement Key</th><th>Value</th></tr>",
-                                "  </thead>",
-                                "  <tbody>"
+                            lines = [
+                                "| Entitlement Key | Value |",
+                                "|-----------------|-------|"
                             ]
                             for k, v in plist_dict.items():
-                                html_lines.append(f"    <tr><td><strong>{k}</strong></td><td><code>{v}</code></td></tr>")
-                            html_lines.append("  </tbody>")
-                            html_lines.append("</table>")
-                            entitlements_text = "\n".join(html_lines)
+                                lines.append(f"| `{k}` | `{v}` |")
+                            entitlements_text = "\n".join(lines)
                         except Exception:
                             entitlements_text = xml_bytes.decode("utf-8", errors="replace")
 
