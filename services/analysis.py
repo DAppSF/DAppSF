@@ -182,7 +182,7 @@ class Analyzer:
                             plist_dict = plistlib.loads(xml_bytes)
                             html = [
                                 "<div class=\"table-responsive\">",
-                                "<table class=\"table table-striped table-bordered align-middle bg-white shadow-sm\">",
+                                "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
                                 "  <thead class=\"table-dark\">",
                                 "    <tr>",
                                 "      <th style=\"width: 40%\">Entitlement Key</th>",
@@ -194,7 +194,7 @@ class Analyzer:
                             for k, v in plist_dict.items():
                                 html.append(f"    <tr>")
                                 html.append(f"      <td><strong>{str(k)}</strong></td>")
-                                html.append(f"      <td><span class=\"text-dark\">{str(v)}</span></td>")
+                                html.append(f"      <td><span class=\"text-light\">{str(v)}</span></td>")
                                 html.append(f"    </tr>")
                             html.append("  </tbody>")
                             html.append("</table>")
@@ -421,7 +421,7 @@ class Analyzer:
 
         html = [
             "<div class=\"table-responsive\">",
-            "<table class=\"table table-striped table-bordered align-middle bg-white shadow-sm\">",
+            "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
             "  <thead class=\"table-dark\">",
             "    <tr>",
             "      <th style=\"width: 30%\">Vulnerability Category</th>",
@@ -442,7 +442,7 @@ class Analyzer:
 
             html.append(f"    <tr>")
             html.append(f"      <td><strong>{cat}</strong></td>")
-            html.append(f"      <td><span class=\"text-dark\">{desc}</span></td>")
+            html.append(f"      <td><span class=\"text-light\">{desc}</span></td>")
             html.append(f"      <td><span class=\"badge {badge_class}\">{sev}</span></td>")
             html.append(f"    </tr>")
 
