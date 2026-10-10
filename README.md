@@ -1,6 +1,10 @@
 
 ---
 
+## About
+
+> Note: This is vibe coded shit.
+
 ## Getting Started
 
 ### Prerequisites
