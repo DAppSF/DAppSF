@@ -126,15 +126,18 @@ class Analyzer:
             return "No binary found to extract strings."
         try:
             res = subprocess.run(
-                ["strings", "-a", self.main_binary],
+                ["strings", "-n", "6", self.main_binary],
                 capture_output=True,
                 text=True,
-                timeout=15,
+                timeout=5,
                 errors="replace"
             )
-            return res.stdout
+            lines = res.stdout.splitlines()
+            if len(lines) > 2000:
+                lines = lines[:2000] + ["\n... (truncated for performance)"]
+            return "\n".join(lines)
         except subprocess.TimeoutExpired:
-            return "strings command timed out after 15 seconds."
+            return "strings command timed out after 5 seconds."
         except Exception as e:
             return f"Error running strings: {e}"
 
@@ -167,7 +170,7 @@ class Analyzer:
         if self.main_binary and os.path.isfile(self.main_binary):
             try:
                 with open(self.main_binary, "rb") as bf:
-                    content = bf.read(2 * 1024 * 1024)
+                    content = bf.read(1 * 1024 * 1024)
 
                 xml_start = content.find(b"<?xml")
                 if xml_start != -1:
