@@ -442,22 +442,21 @@ class Analyzer:
         }
 
     def _scan_vulnerabilities(self, strings_text: str) -> str:
-        # Evaluate dynamic indicators from plist and strings
         has_usage_desc = any(k.endswith("UsageDescription") for k in self.plist_data.keys())
         min_os = str(self.plist_data.get("LSMinimumSystemVersion", "10.15"))
         is_low_os = min_os.startswith("10.") or min_os.startswith("11.")
 
         has_api_keys = bool(re.search(r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35}", strings_text))
-        has_sip_ref = "SIP" in strings_text or "SystemIntegrityProtection" in strings_text
-        has_mem_secrets = "password" in strings_text.lower() or "secret" in strings_text.lower()
+        has_sip_ref = "csrutil" in strings_text.lower() or "systemintegrityprotection" in strings_text.lower() or "csflags" in strings_text.lower()
+        has_mem_secrets = "password" in strings_text.lower() or "secret" in strings_text.lower() or "kSecAttrAccessibleAlways" in strings_text
         has_logs = "NSLog" in strings_text or "os_log" in strings_text or "print(" in strings_text
         has_keychain = "SecItemAdd" in strings_text or "kSecClassGenericPassword" in strings_text
         has_firebase = "Firebase" in strings_text or "GoogleService-Info.plist" in "".join(self._get_all_files())
         has_plists = any(p.endswith(".plist") for p in self._get_all_files())
-        has_webview = "WKWebView" in strings_text or "WebView" in strings_text
-        has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text
-        has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text
-        has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower()
+        has_webview = "WKWebView" in strings_text or "WebView" in strings_text or "evaluateJavaScript" in strings_text
+        has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text or "sqlite3_exec" in strings_text
+        has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text or "Process" in strings_text
+        has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower() or "TrustKit" in strings_text or "AFSecurityPolicy" in strings_text
         
         has_touchid_api = "LocalAuthentication" in strings_text or "LAContext" in strings_text
         insecure_touchid = has_touchid_api and not ("kLAPolicyDeviceOwnerAuthentication" in strings_text or "fallbackTitle" in strings_text)
@@ -506,7 +505,7 @@ class Analyzer:
             elif sev == "Medium":
                 badge_class = "bg-warning text-dark"
             else:
-                badge_class = "bg-secondary text-light"
+                badge_class = "bg-success text-white"
 
             html.append(f"    <tr>")
             html.append(f"      <td><strong>{cat}</strong></td>")
@@ -525,21 +524,41 @@ class Analyzer:
         self._unpack_if_archive(file_path)
         self._locate_targets(file_path)
 
-        # Overview Analysis Summary
-        overview_lines = [
-            f"Job ID: {self.job_id}",
-            f"Analyzed File: {os.path.basename(file_path)}",
-            f"Bundle Path: {self.app_dir or 'None (standalone binary / folder)'}",
-            f"Main Executable: {self.main_binary or 'None detected'}",
+        # Overview Analysis Summary Table
+        overview_rows = [
+            ("Job ID", self.job_id),
+            ("Analyzed File", os.path.basename(file_path)),
+            ("Bundle Path", self.app_dir or 'None (standalone binary / folder)'),
+            ("Main Executable", self.main_binary or 'None detected'),
         ]
         if self.plist_data:
-            overview_lines.extend([
-                f"Bundle Identifier: {self.plist_data.get('CFBundleIdentifier', 'Unknown')}",
-                f"Bundle Name: {self.plist_data.get('CFBundleName', 'Unknown')}",
-                f"Version: {self.plist_data.get('CFBundleShortVersionString', 'Unknown')} ({self.plist_data.get('CFBundleVersion', '')})",
-                f"Min OS Version: {self.plist_data.get('LSMinimumSystemVersion', 'Unknown')}",
+            overview_rows.extend([
+                ("Bundle Identifier", self.plist_data.get('CFBundleIdentifier', 'Unknown')),
+                ("Bundle Name", self.plist_data.get('CFBundleName', 'Unknown')),
+                ("Version", f"{self.plist_data.get('CFBundleShortVersionString', 'Unknown')} ({self.plist_data.get('CFBundleVersion', '')})"),
+                ("Min OS Version", self.plist_data.get('LSMinimumSystemVersion', 'Unknown')),
             ])
-        self._log_and_write("analysis.txt", "Overview", "\n".join(overview_lines))
+
+        overview_html = [
+            "<div class=\"table-responsive\">",
+            "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
+            "  <thead class=\"table-dark\">",
+            "    <tr>",
+            "      <th style=\"width: 35%\">Property</th>",
+            "      <th style=\"width: 65%\">Value</th>",
+            "    </tr>",
+            "  </thead>",
+            "  <tbody>"
+        ]
+        for prop, val in overview_rows:
+            overview_html.append(f"    <tr>")
+            overview_html.append(f"      <td><strong>{prop}</strong></td>")
+            overview_html.append(f"      <td><span class=\"text-light font-monospace small\">{val}</span></td>")
+            overview_html.append(f"    </tr>")
+        overview_html.append("  </tbody>")
+        overview_html.append("</table>")
+        overview_html.append("</div>")
+        self._log_and_write("analysis.txt", "Overview", "\n".join(overview_html))
 
         # Strings extraction
         strings_text = self._extract_strings()

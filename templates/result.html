@@ -34,7 +34,9 @@
     </div>
     <div class="card-body bg-black text-light p-4">
       <div class="card-content">
-        {% if analysis %}
+        {% if analysis and '<table' in analysis %}
+        {{ analysis | safe }}
+        {% elif analysis %}
         <pre class="mb-0 text-success font-monospace bg-black p-3 rounded-0 border border-success" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
         {% else %}
         <p class="text-muted mb-0">No analysis available.</p>
@@ -149,6 +151,10 @@
   .badge.bg-warning {
     background-color: #f0ad4e !important;
     color: #000 !important;
+  }
+  .badge.bg-success {
+    background-color: #198754 !important;
+    color: #fff !important;
   }
   .collapse-btn {
     background-color: #1f2833 !important;
