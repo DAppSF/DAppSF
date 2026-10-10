@@ -130,7 +130,7 @@ class Analyzer:
                 ["strings", "-n", "6", self.main_binary],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=3,
                 errors="replace"
             )
             lines = res.stdout.splitlines()
@@ -138,7 +138,7 @@ class Analyzer:
                 lines = lines[:2000] + ["\n... (truncated for performance)"]
             return "\n".join(lines)
         except subprocess.TimeoutExpired:
-            return "strings command timed out after 5 seconds."
+            return "strings command timed out after 3 seconds."
         except Exception as e:
             return f"Error running strings: {e}"
 
@@ -255,7 +255,6 @@ class Analyzer:
     def _run_static_ssl_pinning_check(self, strings_text: str) -> str:
         report = ["Static SSL Pinning & Certificate Validation Analysis:"]
         
-        # 1. Framework detection in Contents/Frameworks/ or Contents/Resources/
         bundled_frameworks = []
         bundled_certs = []
         all_paths = self._get_all_files()
@@ -271,14 +270,12 @@ class Analyzer:
         report.append(f"\nBundled Frameworks / Libraries detected: {bundled_frameworks if bundled_frameworks else 'None explicit'}")
         report.append(f"Bundled Certificate Files (.cer, .crt, .der, .pem): {bundled_certs if bundled_certs else 'None explicit'}")
 
-        # 2. Framework name checks
         has_trustkit = any("trustkit" in f.lower() for f in bundled_frameworks) or "TrustKit" in strings_text
         has_alamofire = any("alamofire" in f.lower() for f in bundled_frameworks) or "Alamofire" in strings_text
 
         report.append(f"  - TrustKit Framework / References: {'FOUND' if has_trustkit else 'NOT FOUND'}")
         report.append(f"  - Alamofire Framework / References: {'FOUND' if has_alamofire else 'NOT FOUND'}")
 
-        # 3. API symbol matching
         apis_to_check = [
             "SecTrustEvaluate",
             "SecTrustEvaluateWithError",
@@ -292,7 +289,6 @@ class Analyzer:
         else:
             report.append("  - No explicit evaluation or challenge handling APIs matched in strings.")
 
-        # 4. Summary finding evaluation
         if has_trustkit or (bundled_certs and found_apis):
             report.append("\nConclusion: Custom certificate validation / SSL pinning appears PROPERLY CONFIGURED (TrustKit or explicit certs + evaluation APIs present).")
         elif found_apis or bundled_certs:
@@ -500,7 +496,6 @@ class Analyzer:
 
         has_api_keys = bool(re.search(r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35}", strings_text))
         
-        # Dedicated SIP / Rootless / Debug Entitlement Checks
         get_task_allow = bool(self.entitlements_dict.get("com.apple.security.get-task-allow", False))
         has_rootless_ents = any(k.startswith("com.apple.rootless.") for k in self.entitlements_dict.keys())
         
@@ -530,14 +525,17 @@ class Analyzer:
         has_mem_secrets = "password" in strings_text.lower() or "secret" in strings_text.lower() or "kSecAttrAccessibleAlways" in strings_text
         has_logs = "NSLog" in strings_text or "os_log" in strings_text or "print(" in strings_text
         has_keychain = "SecItemAdd" in strings_text or "kSecClassGenericPassword" in strings_text
-        has_firebase = "Firebase" in strings_text or "GoogleService-Info.plist" in "".join(self._get_all_files())
-        has_plists = any(p.endswith(".plist") for p in self._get_all_files())
+        
+        all_files = self._get_all_files()
+        all_files_str = "".join(all_files)
+        has_firebase = "Firebase" in strings_text or "GoogleService-Info.plist" in all_files_str
+        has_plists = any(p.endswith(".plist") for p in all_files)
         has_webview = "WKWebView" in strings_text or "WebView" in strings_text or "evaluateJavaScript" in strings_text
         has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text or "sqlite3_exec" in strings_text
         has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text or "Process" in strings_text
         
-        has_trustkit = any("trustkit" in f.lower() for f in self._get_all_files()) or "TrustKit" in strings_text
-        bundled_certs_exist = any(p.lower().endswith((".cer", ".crt", ".der", ".pem")) for p in self._get_all_files())
+        has_trustkit = any("trustkit" in f.lower() for f in all_files) or "TrustKit" in strings_text
+        bundled_certs_exist = any(p.lower().endswith((".cer", ".crt", ".der", ".pem")) for p in all_files)
         has_eval_apis = "SecTrustEvaluate" in strings_text or "SecTrustEvaluateWithError" in strings_text or "URLSession:didReceiveChallenge:completionHandler:" in strings_text
         
         ssl_pinning_configured = has_trustkit or (bundled_certs_exist and has_eval_apis)
