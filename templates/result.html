@@ -115,6 +115,53 @@
   </div>
 </div>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const vulnSection = document.querySelector('.card.border-danger');
+    if (!vulnSection) return;
+    const table = vulnSection.querySelector('table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, colIndex) => {
+      th.style.cursor = 'pointer';
+      th.title = 'Click to sort';
+      th.addEventListener('click', () => {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        let asc = th.dataset.sortAsc !== 'true';
+        headers.forEach(h => {
+          delete h.dataset.sortAsc;
+          const indicator = h.querySelector('.sort-indicator');
+          if (indicator) indicator.remove();
+        });
+        th.dataset.sortAsc = asc;
+
+        const indicator = document.createElement('span');
+        indicator.className = 'sort-indicator ms-1';
+        indicator.textContent = asc ? ' ▲' : ' ▼';
+        th.appendChild(indicator);
+
+        rows.sort((rowA, rowB) => {
+          const cellA = rowA.querySelectorAll('td')[colIndex];
+          const cellB = rowB.querySelectorAll('td')[colIndex];
+          
+          const valA = cellA ? (cellA.textContent || '').trim() : '';
+          const valB = cellB ? (cellB.textContent || '').trim() : '';
+
+          if (valA < valB) return asc ? -1 : 1;
+          if (valA > valB) return asc ? 1 : -1;
+          return 0;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+      });
+    });
+  });
+</script>
+
 <style>
   body {
     background-color: #0b0c10 !important;
