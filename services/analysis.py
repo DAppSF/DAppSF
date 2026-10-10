@@ -376,6 +376,103 @@ class Analyzer:
             "persistence": "\n".join(persistence) if persistence else "No LaunchAgents, LaunchDaemons, or LoginItems detected.",
         }
 
+    def _scan_vulnerabilities(self, strings_text: str) -> str:
+        vulns = []
+
+        # 1. Excessive Permissions Granted
+        perms = [k for k in self.plist_data.keys() if "UsageDescription" in k or k.startswith("NS")]
+        if len(perms) > 3 or any("Camera" in k or "Microphone" in k or "AddressBook" in k for k in perms):
+            vulns.append("Excessive Permissions Granted: Multiple or sensitive TCC privacy permissions requested in Info.plist.")
+        else:
+            vulns.append("Excessive Permissions Granted: Checked (Standard or minimal permissions).")
+
+        # 2. Minimum OS Version Low
+        min_os = self.plist_data.get("LSMinimumSystemVersion", "Unknown")
+        if min_os != "Unknown" and (min_os.startswith("10.") or min_os.startswith("11.")):
+            vulns.append(f"Minimum OS Version Low: LSMinimumSystemVersion is set to {min_os}, which may be outdated.")
+        else:
+            vulns.append(f"Minimum OS Version Low: LSMinimumSystemVersion is {min_os}.")
+
+        # 3. Hardcoded API Keys
+        if any(k in strings_text for k in ["AIza", "AKIA", "api_key", "secret_key"]):
+            vulns.append("Hardcoded API Keys: Potential API keys or secrets found embedded in binary strings.")
+        else:
+            vulns.append("Hardcoded API Keys: No obvious hardcoded API keys detected.")
+
+        # 4. Insecure SIP Detection
+        if "csrutil" in strings_text or "System Integrity Protection" in strings_text:
+            vulns.append("Insecure SIP Detection: Binary references System Integrity Protection (SIP) checks or bypasses.")
+        else:
+            vulns.append("Insecure SIP Detection: No direct SIP check indicators found.")
+
+        # 5. Sensitive Information stored in Memory
+        if "password" in strings_text.lower() or "secret" in strings_text.lower():
+            vulns.append("Sensitive Information stored in Memory: References to passwords or secrets found in binary strings/memory structures.")
+        else:
+            vulns.append("Sensitive Information stored in Memory: No explicit sensitive terms found in strings.")
+
+        # 6. Insecure Data Leakage in Logs
+        if "NSLog" in strings_text or "os_log" in strings_text or "print(" in strings_text:
+            vulns.append("Insecure Data Leakage in Logs: Logging functions (NSLog/os_log) detected, potential for sensitive data leakage.")
+        else:
+            vulns.append("Insecure Data Leakage in Logs: No prominent logging APIs identified.")
+
+        # 7. Insecure Data Storage in Keychain
+        if "SecItemAdd" in strings_text and ("kSecAttrAccessibleAlways" in strings_text or "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly" not in strings_text):
+            vulns.append("Insecure Data Storage in Keychain: Keychain items found with potentially weak accessibility attributes.")
+        else:
+            vulns.append("Insecure Data Storage in Keychain: Standard or no insecure keychain attributes detected.")
+
+        # 8. Insecure Firebase Database
+        if "firebaseio.com" in strings_text or any("Firebase" in f for f in os.listdir(self.job_path) if os.path.isdir(os.path.join(self.job_path, f))):
+            vulns.append("Insecure Firebase Database: Firebase integration detected; verify database security rules.")
+        else:
+            vulns.append("Insecure Firebase Database: No Firebase database endpoints detected.")
+
+        # 9. Insecure Local Data Storage in plist files
+        if any(f.endswith(".plist") for root, dirs, files in os.walk(self.job_path) for f in files if f != "Info.plist"):
+            vulns.append("Insecure Local Data Storage in plist files: Additional plist configuration/storage files found.")
+        else:
+            vulns.append("Insecure Local Data Storage in plist files: No extra local plist files found.")
+
+        # 10. Insecure WebView Attacks
+        if "WKWebView" in strings_text or "WebView" in strings_text:
+            vulns.append("Insecure WebView Attacks: WebView usage identified; check for JavaScript bridge security and navigation policies.")
+        else:
+            vulns.append("Insecure WebView Attacks: No WebView components detected.")
+
+        # 11. SQL Injection Attack
+        if "sqlite3_exec" in strings_text or "SELECT " in strings_text or "INSERT INTO" in strings_text:
+            vulns.append("Insecure SQL Injection Attack: Database query strings or SQL execution APIs found.")
+        else:
+            vulns.append("Insecure SQL Injection Attack: No raw SQL query indicators found.")
+
+        # 12. Command Injection Attack
+        if "system(" in strings_text or "popen" in strings_text or "NSTask" in strings_text or "Process" in strings_text:
+            vulns.append("Insecure Command Injection Attack: Command execution functions (system/popen/NSTask/Process) detected.")
+        else:
+            vulns.append("Insecure Command Injection Attack: No external command execution APIs identified.")
+
+        # 13. Insecure SSL Pinning
+        if "kCFStreamSSLAllowsAnyRoot" in strings_text or "canBeTrusted" in strings_text or "didReceiveChallenge" in strings_text:
+            vulns.append("Insecure SSL Pinning: Potential custom trust evaluation or disabled certificate validation patterns found.")
+        else:
+            vulns.append("Insecure SSL Pinning: No explicit insecure SSL/TLS bypass patterns found.")
+
+        # 14. Insecure TouchID Implementation
+        if "LAContext" in strings_text or "evaluatePolicy" in strings_text:
+            vulns.append("Insecure TouchID Implementation: LocalAuthentication (TouchID/FaceID) APIs detected; verify fallback and policy evaluation.")
+        else:
+            vulns.append("Insecure TouchID Implementation: No TouchID/FaceID APIs detected.")
+
+        # 15. Network Layer Security
+        if "NSAppTransportSecurity" in self.plist_data or "http://" in strings_text:
+            vulns.append("Insecure Network Layer Security: App Transport Security (ATS) exceptions or HTTP URLs identified.")
+        else:
+            vulns.append("Insecure Network Layer Security: No ATS exceptions or plaintext HTTP URLs detected.")
+
+        return "\n".join(f"- {v}" for v in vulns)
+
     def analyze(self, file_path: str) -> None:
         logger.info("Starting analysis for job %s on file: %s", self.job_id, file_path)
         self._unpack_if_archive(file_path)
@@ -400,6 +497,10 @@ class Analyzer:
         # Strings extraction
         strings_text = self._extract_strings()
         self._log_and_write("strings.txt", "Strings", strings_text)
+
+        # Vulnerabilities Assessment by Category
+        vulns_text = self._scan_vulnerabilities(strings_text)
+        self._log_and_write("vulnerabilities.txt", "Vulnerabilities Included", vulns_text)
 
         # Codesign & Entitlements & Hardened Runtime
         codesign, hardened, entitlements = self._extract_entitlements_and_codesign()
