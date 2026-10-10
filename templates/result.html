@@ -148,8 +148,11 @@
           const cellA = rowA.querySelectorAll('td')[colIndex];
           const cellB = rowB.querySelectorAll('td')[colIndex];
           
-          const valA = cellA ? (cellA.innerText || cellA.textContent || '').trim() : '';
-          const valB = cellB ? (cellB.innerText || cellB.textContent || '').trim() : '';
+          const badgeA = cellA ? cellA.querySelector('.badge') : null;
+          const badgeB = cellB ? cellB.querySelector('.badge') : null;
+
+          const valA = badgeA ? badgeA.innerText.trim() : (cellA ? (cellA.innerText || cellA.textContent || '').trim() : '');
+          const valB = badgeB ? badgeB.innerText.trim() : (cellB ? (cellB.innerText || cellB.textContent || '').trim() : '');
 
           const severityOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4, 'note': 5 };
           const lowerA = valA.toLowerCase();
