@@ -1,6 +1,21 @@
 {% extends 'base.html' %}
 {% block body %}
 <h1>Analysis Report</h1>
+
+<section class="card border-danger">
+  <div class="card-header bg-danger text-white">
+    <h2>Vulnerabilities Assessment (Included by Design)</h2>
+    <button class="collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+  </div>
+  <div class="card-content">
+    {% if vulnerabilities %}
+    <pre>{{ vulnerabilities }}</pre>
+    {% else %}
+    <p>No vulnerabilities detected.</p>
+    {% endif %}
+  </div>
+</section>
+
 <section class="card">
   <p class="meta"><strong>Job:</strong> {{ job_id }}</p>
   {% if analysis %}
@@ -36,40 +51,6 @@
   {% endif %}
 </section>
 <section class="card">
-  <h2>Otool</h2>
-  {% if otool %}
-  <pre>{{ otool }}</pre>
-  {% else %}
-  <p>No otool found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>nm</h2>
-  {% if nm %}
-  <pre>{{ nm }}</pre>
-  {% else %}
-  <p>No nm found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>strings</h2>
-          <button class="collapse-btn" onclick="toggleCollapse(this)">▼</button>
-
-  {% if strings %}
-  <pre>{{ strings }}</pre>
-  {% else %}
-  <p>No strings found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>lldb</h2>
-  {% if lldb %}
-  <pre>{{ lldb }}</pre>
-  {% else %}
-  <p>No lldb found.</p>
-  {% endif %}
-</section>
-<section class="card">
   <h2>Binary Protections (Mach-O hardening)</h2>
   {% if binary_protections %}
   <pre>{{ binary_protections }}</pre>
@@ -78,19 +59,19 @@
   {% endif %}
 </section>
 <section class="card">
-  <h2>Notarization / Gatekeeper / Quarantine</h2>
-  {% if notarization %}
-  <pre>{{ notarization }}</pre>
+  <h2>Secrets & Sensitive Keys</h2>
+  {% if secrets %}
+  <pre>{{ secrets }}</pre>
   {% else %}
-  <p>No notarization found.</p>
+  <p>No secrets found.</p>
   {% endif %}
 </section>
 <section class="card">
-  <h2>Persistence & Auto-Start</h2>
-  {% if persistence %}
-  <pre>{{ persistence }}</pre>
+  <h2>Network Security</h2>
+  {% if network %}
+  <pre>{{ network }}</pre>
   {% else %}
-  <p>No persistence found.</p>
+  <p>No network found.</p>
   {% endif %}
 </section>
 <section class="card">
@@ -107,14 +88,6 @@
   <pre>{{ sensitive }}</pre>
   {% else %}
   <p>No sensitive found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Network Security</h2>
-  {% if network %}
-  <pre>{{ network }}</pre>
-  {% else %}
-  <p>No network found.</p>
   {% endif %}
 </section>
 <section class="card">
@@ -151,10 +124,10 @@
 </section>
 <section class="card">
   <h2>Update Mechanisms</h2>
-  {% if secrets %}
-  <pre>{{ secrets }}</pre>
+  {% if updates %}
+  <pre>{{ updates }}</pre>
   {% else %}
-  <p>No secrets found.</p>
+  <p>No updates found.</p>
   {% endif %}
 </section>
 <section class="card">
@@ -187,6 +160,31 @@
   <pre>{{ plugins }}</pre>
   {% else %}
   <p>No plugins found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Notarization / Gatekeeper / Quarantine</h2>
+  {% if notarization %}
+  <pre>{{ notarization }}</pre>
+  {% else %}
+  <p>No notarization found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Persistence & Auto-Start</h2>
+  {% if persistence %}
+  <pre>{{ persistence }}</pre>
+  {% else %}
+  <p>No persistence found.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>strings</h2>
+  <button class="collapse-btn" onclick="toggleCollapse(this)">▼</button>
+  {% if strings %}
+  <pre>{{ strings }}</pre>
+  {% else %}
+  <p>No strings found.</p>
   {% endif %}
 </section>
 {% endblock %}
