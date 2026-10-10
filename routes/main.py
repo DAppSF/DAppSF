@@ -45,6 +45,33 @@ def upload():
     analyzer.analyze(file_path)
     return redirect(url_for("main.result", job_id=job_id))
 
+@bp.post("/delete/<job_id>")
+def delete_scan(job_id: str):
+    job_path = os.path.join(current_app.config["UPLOAD_DIR"], job_id)
+    if os.path.isdir(job_path):
+        import shutil
+        shutil.rmtree(job_path, ignore_errors=True)
+    return redirect(url_for("main.home"))
+
+@bp.get("/pdf/<job_id>")
+def download_pdf(job_id: str):
+    job_path = os.path.join(current_app.config["UPLOAD_DIR"], job_id)
+    if not os.path.isdir(job_path):
+        abort(404)
+    
+    analysis_path = os.path.join(job_path, "analysis.txt")
+    content = f"Security Analysis Report for Job ID: {job_id}\n\n"
+    if os.path.exists(analysis_path):
+        with open(analysis_path, "r", encoding="utf-8", errors="replace") as f:
+            content += f.read()
+
+    from flask import Response
+    return Response(
+        content,
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment;filename=report_{job_id}.txt"}
+    )
+
 @bp.get("/result/<job_id>")
 def result(job_id: str):
     def _read(job_path: str, relname: str) -> str:
