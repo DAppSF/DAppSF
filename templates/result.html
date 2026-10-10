@@ -76,7 +76,11 @@
         <div class="card-body bg-black text-light p-3">
           <div class="card-content">
             {% if content %}
-            <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
+              {% if title == "Entitlements" and "<table" in content %}
+                {{ content | safe }}
+              {% else %}
+                <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
+              {% endif %}
             {% else %}
             <p class="text-muted mb-0 small">No data recorded.</p>
             {% endif %}
@@ -127,15 +131,32 @@
     color: #c5c6c7 !important;
     border-color: #333 !important;
   }
+  .table-striped > tbody > tr:nth-of-type(odd) > * {
+    color: #c5c6c7 !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
+  }
   .table-dark {
     background-color: #1f2833 !important;
     color: #66fcf1 !important;
+  }
+  .badge.bg-purple {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
   }
   .badge.bg-danger {
     background-color: #d9534f !important;
   }
   .badge.bg-warning {
     background-color: #f0ad4e !important;
+    color: #000 !important;
+  }
+  .collapse-btn {
+    background-color: #1f2833 !important;
+    color: #66fcf1 !important;
+    border: 1px solid #66fcf1 !important;
+  }
+  .collapse-btn:hover {
+    background-color: #66fcf1 !important;
     color: #000 !important;
   }
   .btn:hover {

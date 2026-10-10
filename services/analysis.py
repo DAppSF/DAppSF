@@ -180,13 +180,26 @@ class Analyzer:
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
                         try:
                             plist_dict = plistlib.loads(xml_bytes)
-                            lines = [
-                                f"{'ENTITLEMENT KEY':<50} | {'VALUE'}",
-                                f"{'-'*50} | {'-'*30}"
+                            html = [
+                                "<div class=\"table-responsive\">",
+                                "<table class=\"table table-striped table-bordered align-middle bg-white shadow-sm\">",
+                                "  <thead class=\"table-dark\">",
+                                "    <tr>",
+                                "      <th style=\"width: 40%\">Entitlement Key</th>",
+                                "      <th style=\"width: 60%\">Value</th>",
+                                "    </tr>",
+                                "  </thead>",
+                                "  <tbody>"
                             ]
                             for k, v in plist_dict.items():
-                                lines.append(f"{str(k):<50} | {str(v)}")
-                            entitlements_text = "\n".join(lines)
+                                html.append(f"    <tr>")
+                                html.append(f"      <td><strong>{str(k)}</strong></td>")
+                                html.append(f"      <td><span class=\"text-dark\">{str(v)}</span></td>")
+                                html.append(f"    </tr>")
+                            html.append("  </tbody>")
+                            html.append("</table>")
+                            html.append("</div>")
+                            entitlements_text = "\n".join(html)
                         except Exception:
                             entitlements_text = xml_bytes.decode("utf-8", errors="replace")
 
@@ -385,7 +398,6 @@ class Analyzer:
         }
 
     def _scan_vulnerabilities(self, strings_text: str) -> str:
-        # Structured vulnerability list rendered as an HTML table
         vulns_data = [
             ("Excessive Permissions Granted", "Multiple or sensitive TCC privacy permissions requested in Info.plist.", "High"),
             ("Minimum OS Version Low", "LSMinimumSystemVersion is outdated or permits legacy execution.", "Medium"),
@@ -404,6 +416,9 @@ class Analyzer:
             ("Insecure Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified.", "High")
         ]
 
+        severity_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+        vulns_data.sort(key=lambda x: severity_order.get(x[2], 99))
+
         html = [
             "<div class=\"table-responsive\">",
             "<table class=\"table table-striped table-bordered align-middle bg-white shadow-sm\">",
@@ -418,7 +433,13 @@ class Analyzer:
         ]
 
         for cat, desc, sev in vulns_data:
-            badge_class = "bg-danger" if sev in ("Critical", "High") else "bg-warning text-dark"
+            if sev == "Critical":
+                badge_class = "bg-purple"
+            elif sev == "High":
+                badge_class = "bg-danger"
+            else:
+                badge_class = "bg-warning text-dark"
+
             html.append(f"    <tr>")
             html.append(f"      <td><strong>{cat}</strong></td>")
             html.append(f"      <td><span class=\"text-dark\">{desc}</span></td>")
