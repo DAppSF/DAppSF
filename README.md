@@ -1,1 +1,4 @@
 # DAppSF
+
+## folder structure
+routes:

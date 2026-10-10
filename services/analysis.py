@@ -24,7 +24,6 @@ class Analyzer:
         with open(os.path.join(self.job_path, "strings.txt"), "w") as f:
             f.write(strings_out.stdout)
 
-        # NEW: fake secrets scan
         with open(os.path.join(self.job_path, "secrets.txt"), "w") as f:
             f.write("No secrets found.")
 

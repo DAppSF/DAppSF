@@ -1,14 +1,23 @@
 import os, uuid, subprocess
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, abort
 from werkzeug.utils import secure_filename
-from ..services.analysis import Analyzer
+from services.analysis import Analyzer
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("main", __name__)
 
+# main site of the app
 @bp.get("/")
 def home():
+    # Inside your upload or scan function:
+    logger.info("New sample uploaded: Test.app")
+    logger.warning("Unsigned binary detected!")
+    logger.error("Failed to parse Info.plist")
     return render_template("upload.html")
 
+# upload site of the app
 @bp.post("/upload")
 def upload():
     f = request.files.get("file")

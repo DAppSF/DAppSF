@@ -1,0 +1,7 @@
+File saved to /data/uploads/36845a6c-d529-400d-84eb-85054b824182/Nook.app.zip
+
+ls -l output:
+total 27940
+-rw-r--r-- 1 root root 28604665 Sep 26 18:44 Nook.app.zip
+-rw-r--r-- 1 root root       79 Sep 26 18:44 analysis.txt
+
