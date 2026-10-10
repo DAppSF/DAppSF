@@ -148,12 +148,21 @@
           const cellA = rowA.querySelectorAll('td')[colIndex];
           const cellB = rowB.querySelectorAll('td')[colIndex];
           
-          const valA = cellA ? (cellA.textContent || '').trim() : '';
-          const valB = cellB ? (cellB.textContent || '').trim() : '';
+          const valA = cellA ? (cellA.innerText || cellA.textContent || '').trim() : '';
+          const valB = cellB ? (cellB.innerText || cellB.textContent || '').trim() : '';
 
-          if (valA < valB) return asc ? -1 : 1;
-          if (valA > valB) return asc ? 1 : -1;
-          return 0;
+          const severityOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4, 'note': 5 };
+          const lowerA = valA.toLowerCase();
+          const lowerB = valB.toLowerCase();
+
+          let comp = 0;
+          if (severityOrder[lowerA] !== undefined && severityOrder[lowerB] !== undefined) {
+            comp = severityOrder[lowerA] - severityOrder[lowerB];
+          } else {
+            comp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+          }
+
+          return asc ? comp : -comp;
         });
 
         rows.forEach(row => tbody.appendChild(row));
