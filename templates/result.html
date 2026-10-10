@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block body %}
+{% block content %}
 <div class="container my-4" style="max-width: 1200px;">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 fw-bold text-dark">Security Analysis Report</h1>
@@ -12,11 +12,13 @@
       <button class="btn btn-sm btn-light text-danger fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
     </div>
     <div class="card-body bg-light">
-      {% if vulnerabilities %}
-      <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ vulnerabilities }}</pre>
-      {% else %}
-      <p class="text-muted mb-0">No vulnerabilities detected.</p>
-      {% endif %}
+      <div class="card-content">
+        {% if vulnerabilities %}
+        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ vulnerabilities }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No vulnerabilities detected.</p>
+        {% endif %}
+      </div>
     </div>
   </section>
 
@@ -26,11 +28,13 @@
       <span class="badge bg-light text-dark">Job ID: {{ job_id }}</span>
     </div>
     <div class="card-body bg-light">
-      {% if analysis %}
-      <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
-      {% else %}
-      <p class="text-muted mb-0">No analysis available.</p>
-      {% endif %}
+      <div class="card-content">
+        {% if analysis %}
+        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No analysis available.</p>
+        {% endif %}
+      </div>
     </div>
   </section>
 
