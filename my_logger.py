@@ -11,5 +11,4 @@ def create_app() -> Flask:
     )
     
     app = Flask(__name__, static_folder="static", template_folder="templates")
-    # ... rest of your setup ...
     return app
