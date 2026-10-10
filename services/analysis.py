@@ -21,6 +21,7 @@ class Analyzer:
         self.app_dir = None
         self.main_binary = None
         self.plist_data = {}
+        self.entitlements_dict = {}
         self._all_files_cache = None
 
     def _get_all_files(self) -> list[str]:
@@ -180,6 +181,7 @@ class Analyzer:
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
                         try:
                             plist_dict = plistlib.loads(xml_bytes)
+                            self.entitlements_dict = plist_dict
                             html = [
                                 "<div class=\"table-responsive\">",
                                 "<table class=\"table table-striped table-bordered align-middle bg-dark text-light\">",
@@ -447,7 +449,34 @@ class Analyzer:
         is_low_os = min_os.startswith("10.") or min_os.startswith("11.")
 
         has_api_keys = bool(re.search(r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35}", strings_text))
-        has_sip_ref = "csrutil" in strings_text.lower() or "systemintegrityprotection" in strings_text.lower() or "csflags" in strings_text.lower()
+        
+        # Dedicated SIP / Rootless / Debug Entitlement Checks
+        get_task_allow = bool(self.entitlements_dict.get("com.apple.security.get-task-allow", False))
+        has_rootless_ents = any(k.startswith("com.apple.rootless.") for k in self.entitlements_dict.keys())
+        
+        has_restrict = False
+        if self.main_binary and os.path.isfile(self.main_binary):
+            try:
+                with open(self.main_binary, "rb") as bf_chk:
+                    bin_data_chk = bf_chk.read(16384)
+                    has_restrict = b"__RESTRICT" in bin_data_chk or b"__restrict" in bin_data_chk
+            except Exception:
+                pass
+        has_restrict = has_restrict or ("__RESTRICT" in strings_text) or ("__restrict" in strings_text)
+
+        sip_vulnerable = (get_task_allow or has_rootless_ents) and not has_restrict
+        if sip_vulnerable:
+            sip_desc = "Debug entitlements (get-task-allow) or rootless overrides present without __RESTRICT segment protection, enabling potential DYLD environment injection or SIP bypass."
+            sip_sev = "Critical" if get_task_allow else "High"
+        else:
+            has_sip_ref = "csrutil" in strings_text.lower() or "systemintegrityprotection" in strings_text.lower() or "csflags" in strings_text.lower()
+            if has_sip_ref:
+                sip_desc = "Binary references System Integrity Protection (SIP) checks or bypass routines."
+                sip_sev = "Medium"
+            else:
+                sip_desc = "No explicit SIP bypass or insecure debug entitlement configurations identified."
+                sip_sev = "Low"
+
         has_mem_secrets = "password" in strings_text.lower() or "secret" in strings_text.lower() or "kSecAttrAccessibleAlways" in strings_text
         has_logs = "NSLog" in strings_text or "os_log" in strings_text or "print(" in strings_text
         has_keychain = "SecItemAdd" in strings_text or "kSecClassGenericPassword" in strings_text
@@ -467,7 +496,7 @@ class Analyzer:
             ("Excessive Permissions Granted", "Multiple or sensitive TCC privacy permissions requested in Info.plist." if has_usage_desc else "Standard permission set requested.", "High" if has_usage_desc else "Low"),
             ("Minimum OS Version Low", f"LSMinimumSystemVersion is set to {min_os} (permits legacy execution)." if is_low_os else f"Minimum OS version {min_os} is up to date.", "Medium" if is_low_os else "Low"),
             ("Hardcoded API Keys", "Potential API keys, tokens, or credentials found embedded in binary strings." if has_api_keys else "No hardcoded API keys or tokens identified.", "Critical" if has_api_keys else "Low"),
-            ("Insecure SIP Detection", "Binary references System Integrity Protection (SIP) bypass or checks." if has_sip_ref else "No explicit SIP references or bypass routines identified.", "Medium" if has_sip_ref else "Low"),
+            ("Insecure SIP Detection & Bypass Indicators", sip_desc, sip_sev),
             ("Sensitive Information stored in Memory", "References to passwords or secrets found in binary strings/memory structures." if has_mem_secrets else "No sensitive memory artifacts detected.", "High" if has_mem_secrets else "Low"),
             ("Insecure Data Leakage in Logs", "Logging functions (NSLog/os_log/print) active; potential sensitive data leakage." if has_logs else "No excessive logging functions detected.", "Medium" if has_logs else "Low"),
             ("Insecure Data Storage in Keychain", "Keychain items found with weak or insecure accessibility attributes." if has_keychain else "No insecure Keychain configurations identified.", "High" if has_keychain else "Low"),
@@ -564,15 +593,15 @@ class Analyzer:
         strings_text = self._extract_strings()
         self._log_and_write("strings.txt", "Strings", strings_text)
 
-        # Vulnerabilities Assessment by Category
-        vulns_text = self._scan_vulnerabilities(strings_text)
-        self._log_and_write("vulnerabilities.txt", "Vulnerabilities Included", vulns_text)
-
-        # Codesign & Entitlements & Hardened Runtime
+        # Codesign & Entitlements & Hardened Runtime (populates self.entitlements_dict)
         codesign, hardened, entitlements = self._extract_entitlements_and_codesign()
         self._log_and_write("codesign.txt", "Code Signing", codesign)
         self._log_and_write("hardened.txt", "Hardened Runtime", hardened)
         self._log_and_write("entitlements.xml", "Entitlements", entitlements)
+
+        # Vulnerabilities Assessment by Category (relies on self.entitlements_dict)
+        vulns_text = self._scan_vulnerabilities(strings_text)
+        self._log_and_write("vulnerabilities.txt", "Vulnerabilities Included", vulns_text)
 
         # Binary Protections
         protections = self._check_binary_protections(strings_text)
