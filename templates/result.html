@@ -1,17 +1,21 @@
 {% extends 'base.html' %}
 {% block body %}
-<div class="container my-4" style="max-width: 1200px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 fw-bold text-dark">Security Analysis Report</h1>
-    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.home') }}">← Upload Another</a>
+<div class="container my-5" style="max-width: 1280px; font-family: 'Courier New', Courier, monospace;">
+  <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom border-secondary">
+    <div>
+      <h1 class="h3 fw-bold text-success mb-1" style="letter-spacing: 2px;">// SECURITY_ANALYSIS_TERMINAL</h1>
+      <span class="text-muted small">TARGET_JOB_ID: {{ job_id }}</span>
+    </div>
+    <a class="btn btn-outline-success btn-sm rounded-0 px-4 py-2 text-uppercase fw-bold shadow-none" href="{{ url_for('main.home') }}" style="letter-spacing: 1px; border-color: #198754; color: #198754;">[ &lt; UPLOAD_NEW ]</a>
   </div>
 
-  <section class="card shadow-sm mb-4 border-danger">
-    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-      <h2 class="h5 mb-0 fw-semibold">Vulnerabilities Assessment (Included by Design)</h2>
-      <button class="btn btn-sm btn-light text-danger fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+  <!-- Vulnerabilities Assessment Table -->
+  <section class="card bg-dark text-light border-danger shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Vulnerabilities Assessment (Included by Design)</h2>
+      <button class="btn btn-sm btn-dark text-white fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
     </div>
-    <div class="card-body bg-light">
+    <div class="card-body bg-black text-light p-4">
       <div class="card-content">
         {% if vulnerabilities %}
         {{ vulnerabilities | safe }}
@@ -22,15 +26,16 @@
     </div>
   </section>
 
-  <section class="card shadow-sm mb-4 border-primary">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <h2 class="h5 mb-0 fw-semibold">Overview &amp; Metadata</h2>
-      <span class="badge bg-light text-dark">Job ID: {{ job_id }}</span>
+  <!-- Overview -->
+  <section class="card bg-dark text-light border-success shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-success text-dark d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Overview &amp; Metadata</h2>
+      <button class="btn btn-sm btn-dark text-success fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
     </div>
-    <div class="card-body bg-light">
+    <div class="card-body bg-black text-light p-4">
       <div class="card-content">
         {% if analysis %}
-        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
+        <pre class="mb-0 text-success font-monospace bg-black p-3 rounded-0 border border-success" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
         {% else %}
         <p class="text-muted mb-0">No analysis available.</p>
         {% endif %}
@@ -39,226 +44,59 @@
   </section>
 
   <div class="row">
+    {% set items = [
+      ("Code Signing", code_signing),
+      ("Hardened Runtime", hardened_runtime),
+      ("Entitlements", entitlements),
+      ("Binary Protections", binary_protections),
+      ("Secrets & Sensitive Keys", secrets),
+      ("Network Security", network),
+      ("Keychain Usage", keychain),
+      ("Sensitive Storage", sensitive),
+      ("IPC", ipc),
+      ("Dynamic Tracing", dynamic_tracing),
+      ("Dylib Injection / Hijacking", dylib_injection),
+      ("Privacy / TCC", privacy),
+      ("Update Mechanisms", updates),
+      ("Helpers & Privileged Ops", helpers),
+      ("URL Schemes", url_schemes),
+      ("Crash Handling & Logs", crash_handling),
+      ("Plugins & Extensions", plugins),
+      ("Notarization / Gatekeeper", notarization),
+      ("Persistence & Auto-Start", persistence)
+    ] %}
+
+    {% for title, content in items %}
     <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Code Signing</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+      <section class="card bg-dark text-light border-secondary shadow-lg h-100 rounded-0">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center rounded-0 py-3">
+          <h3 class="h6 mb-0 fw-bold text-uppercase text-light" style="letter-spacing: 1px;">&gt;&gt; {{ title }}</h3>
+          <button class="btn btn-sm btn-dark text-light fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
         </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if code_signing %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ code_signing }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
+        <div class="card-body bg-black text-light p-3">
+          <div class="card-content">
+            {% if content %}
+            <pre class="mb-0 text-info font-monospace bg-black p-3 rounded-0 border border-secondary" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
+            {% else %}
+            <p class="text-muted mb-0 small">No data recorded.</p>
+            {% endif %}
+          </div>
+        </div>
       </section>
     </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Hardened Runtime</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if hardened_runtime %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ hardened_runtime }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Entitlements</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if entitlements %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ entitlements }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Binary Protections</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if binary_protections %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ binary_protections }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Secrets &amp; Sensitive Keys</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if secrets %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ secrets }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Network Security</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if network %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ network }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Keychain Usage</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if keychain %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ keychain }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Sensitive Storage</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if sensitive %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ sensitive }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">IPC</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if ipc %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ ipc }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Dynamic Tracing</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if dynamic_tracing %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ dynamic_tracing }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Dylib Injection / Hijacking</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if dylib_injection %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ dylib_injection }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Privacy / TCC</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if privacy %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ privacy }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Update Mechanisms</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if updates %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ updates }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Helpers &amp; Privileged Ops</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if helpers %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ helpers }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">URL Schemes</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if url_schemes %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ url_schemes }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Crash Handling &amp; Logs</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if crash_handling %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ crash_handling }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Plugins &amp; Extensions</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if plugins %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ plugins }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Notarization / Gatekeeper</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if notarization %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ notarization }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
-    <div class="col-md-6 mb-4">
-      <section class="card shadow-sm h-100 border-secondary">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h3 class="h6 mb-0 fw-semibold text-white">Persistence &amp; Auto-Start</h3>
-          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-        </div>
-        <div class="card-body bg-light"><div class="card-content">
-          {% if persistence %}<pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ persistence }}</pre>{% else %}<p class="text-muted mb-0 small">No data recorded.</p>{% endif %}
-        </div></div>
-      </section>
-    </div>
+    {% endfor %}
   </div>
 
-  <section class="card shadow-sm mb-4 border-dark">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <h2 class="h5 mb-0 fw-semibold">Extracted Strings</h2>
-      <button class="btn btn-sm btn-light text-dark fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+  <!-- Extracted Strings -->
+  <section class="card bg-dark text-light border-warning shadow-lg mb-5 rounded-0">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center rounded-0 py-3">
+      <h2 class="h5 mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">&gt;&gt; Extracted Strings</h2>
+      <button class="btn btn-sm btn-dark text-warning fw-bold rounded-0 collapse-btn px-3" type="button" onclick="toggleCollapse(this)">[ - ]</button>
     </div>
-    <div class="card-body bg-light">
+    <div class="card-body bg-black text-light p-4">
       <div class="card-content">
         {% if strings %}
-        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">{{ strings }}</pre>
+        <pre class="mb-0 text-warning font-monospace bg-black p-3 rounded-0 border border-warning" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">{{ strings }}</pre>
         {% else %}
         <p class="text-muted mb-0">No strings found.</p>
         {% endif %}
@@ -267,7 +105,42 @@
   </section>
 
   <div class="text-center mb-5">
-    <a class="btn btn-primary px-4 py-2" href="{{ url_for('main.home') }}">← Back to Upload</a>
+    <a class="btn btn-outline-success rounded-0 px-5 py-3 text-uppercase fw-bold shadow-none" href="{{ url_for('main.home') }}" style="letter-spacing: 2px; border-color: #198754; color: #198754;">[ &lt; BACK_TO_UPLOAD ]</a>
   </div>
 </div>
+
+<style>
+  body {
+    background-color: #0b0c10 !important;
+    color: #c5c6c7 !important;
+  }
+  pre::-webkit-scrollbar {
+    width: 6px;
+  }
+  pre::-webkit-scrollbar-track {
+    background: #0b0c10;
+  }
+  pre::-webkit-scrollbar-thumb {
+    background: #198754;
+  }
+  .table {
+    color: #c5c6c7 !important;
+    border-color: #333 !important;
+  }
+  .table-dark {
+    background-color: #1f2833 !important;
+    color: #66fcf1 !important;
+  }
+  .badge.bg-danger {
+    background-color: #d9534f !important;
+  }
+  .badge.bg-warning {
+    background-color: #f0ad4e !important;
+    color: #000 !important;
+  }
+  .btn:hover {
+    background-color: #198754 !important;
+    color: #fff !important;
+  }
+</style>
 {% endblock %}
