@@ -1,190 +1,101 @@
 {% extends 'base.html' %}
 {% block body %}
-<h1>Analysis Report</h1>
+<div class="container my-4" style="max-width: 1200px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold text-dark">Security Analysis Report</h1>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.home') }}">← Upload Another</a>
+  </div>
 
-<section class="card border-danger">
-  <div class="card-header bg-danger text-white">
-    <h2>Vulnerabilities Assessment (Included by Design)</h2>
-    <button class="collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
-  </div>
-  <div class="card-content">
-    {% if vulnerabilities %}
-    <pre>{{ vulnerabilities }}</pre>
-    {% else %}
-    <p>No vulnerabilities detected.</p>
-    {% endif %}
-  </div>
-</section>
+  <section class="card shadow-sm mb-4 border-danger">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0 fw-semibold">Vulnerabilities Assessment (Included by Design)</h2>
+      <button class="btn btn-sm btn-light text-danger fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+    </div>
+    <div class="card-body bg-light">
+      {% if vulnerabilities %}
+      <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ vulnerabilities }}</pre>
+      {% else %}
+      <p class="text-muted mb-0">No vulnerabilities detected.</p>
+      {% endif %}
+    </div>
+  </section>
 
-<section class="card">
-  <p class="meta"><strong>Job:</strong> {{ job_id }}</p>
-  {% if analysis %}
-  <pre>{{ analysis }}</pre>
-  {% else %}
-  <p>No analysis yet.</p>
-  {% endif %}
-  <a class="button" href="{{ url_for('main.home') }}">Back</a>
-</section>
-<section class="card">
-  <div class="card-header">
-    <h2>Code Signing</h2>
-    <button class="collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+  <section class="card shadow-sm mb-4 border-primary">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0 fw-semibold">Overview & Metadata</h2>
+      <span class="badge bg-light text-dark">Job ID: {{ job_id }}</span>
+    </div>
+    <div class="card-body bg-light">
+      {% if analysis %}
+      <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ analysis }}</pre>
+      {% else %}
+      <p class="text-muted mb-0">No analysis available.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="row">
+    {% set items = [
+      ("Code Signing", code_signing),
+      ("Hardened Runtime", hardened_runtime),
+      ("Entitlements", entitlements),
+      ("Binary Protections (Mach-O hardening)", binary_protections),
+      ("Secrets & Sensitive Keys", secrets),
+      ("Network Security", network),
+      ("Keychain Usage", keychain),
+      ("Sensitive Storage", sensitive),
+      ("IPC", ipc),
+      ("Dynamic Tracing", dynamic_tracing),
+      ("Dylib Injection / Hijacking", dylib_injection),
+      ("Privacy / TCC", privacy),
+      ("Update Mechanisms", updates),
+      ("Helpers & Privileged Ops", helpers),
+      ("URL Schemes & AppleScript/JXA", url_schemes),
+      ("Crash Handling & Logs", crash_handling),
+      ("Plugins / Extensions / Interpreters", plugins),
+      ("Notarization / Gatekeeper / Quarantine", notarization),
+      ("Persistence & Auto-Start", persistence)
+    ] %}
+
+    {% for title, content in items %}
+    <div class="col-md-6 mb-4">
+      <section class="card shadow-sm h-100 border-secondary">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h3 class="h6 mb-0 fw-semibold text-white">{{ title }}</h3>
+          <button class="btn btn-sm btn-light text-secondary fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+        </div>
+        <div class="card-body bg-light">
+          <div class="card-content">
+            {% if content %}
+            <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">{{ content }}</pre>
+            {% else %}
+            <p class="text-muted mb-0 small">No data recorded.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+    {% endfor %}
   </div>
-  <div class="card-content">
-    {% if code_signing %}<pre>{{ code_signing }}</pre>{% else %}<p>No code_signing found.</p>{% endif %}
+
+  <section class="card shadow-sm mb-4 border-dark">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0 fw-semibold">Extracted Strings</h2>
+      <button class="btn btn-sm btn-light text-dark fw-bold collapse-btn" type="button" onclick="toggleCollapse(this)">▼</button>
+    </div>
+    <div class="card-body bg-light">
+      <div class="card-content">
+        {% if strings %}
+        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 400px; overflow-y: auto;">{{ strings }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No strings found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center mb-5">
+    <a class="btn btn-primary px-4 py-2" href="{{ url_for('main.home') }}">← Back to Upload</a>
   </div>
-</section>
-<section class="card">
-  <h2>Hardened Runtime</h2>
-  {% if hardened_runtime %}
-  <pre>{{ hardened_runtime }}</pre>
-  {% else %}
-  <p>No hardened_runtime found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Entitlements</h2>
-  {% if entitlements %}
-  <pre>{{ entitlements }}</pre>
-  {% else %}
-  <p>No entitlements found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Binary Protections (Mach-O hardening)</h2>
-  {% if binary_protections %}
-  <pre>{{ binary_protections }}</pre>
-  {% else %}
-  <p>No binary_protections found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Secrets & Sensitive Keys</h2>
-  {% if secrets %}
-  <pre>{{ secrets }}</pre>
-  {% else %}
-  <p>No secrets found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Network Security</h2>
-  {% if network %}
-  <pre>{{ network }}</pre>
-  {% else %}
-  <p>No network found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Keychain Usage</h2>
-  {% if keychain %}
-  <pre>{{ keychain }}</pre>
-  {% else %}
-  <p>No keychain found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Sensitive Storage</h2>
-  {% if sensitive %}
-  <pre>{{ sensitive }}</pre>
-  {% else %}
-  <p>No sensitive found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>IPC</h2>
-  {% if ipc %}
-  <pre>{{ ipc }}</pre>
-  {% else %}
-  <p>No ipc found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Dynamic Tracing</h2>
-  {% if dynamic_tracing %}
-  <pre>{{ dynamic_tracing }}</pre>
-  {% else %}
-  <p>No dynamic_tracing found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Dylib Injection / Hijacking</h2>
-  {% if dylib_injection %}
-  <pre>{{ dylib_injection }}</pre>
-  {% else %}
-  <p>No dylib_injection found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Privacy / TCC</h2>
-  {% if privacy %}
-  <pre>{{ privacy }}</pre>
-  {% else %}
-  <p>No privacy found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Update Mechanisms</h2>
-  {% if updates %}
-  <pre>{{ updates }}</pre>
-  {% else %}
-  <p>No updates found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Helpers & Privileged Ops</h2>
-  {% if helpers %}
-  <pre>{{ helpers }}</pre>
-  {% else %}
-  <p>No helpers found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>URL Schemes & AppleScript/JXA</h2>
-  {% if url_schemes %}
-  <pre>{{ url_schemes }}</pre>
-  {% else %}
-  <p>No url_schemes found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Crash Handling & Logs</h2>
-  {% if crash_handling %}
-  <pre>{{ crash_handling }}</pre>
-  {% else %}
-  <p>No crash_handling found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Plugins / Extensions / Interpreters</h2>
-  {% if plugins %}
-  <pre>{{ plugins }}</pre>
-  {% else %}
-  <p>No plugins found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Notarization / Gatekeeper / Quarantine</h2>
-  {% if notarization %}
-  <pre>{{ notarization }}</pre>
-  {% else %}
-  <p>No notarization found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>Persistence & Auto-Start</h2>
-  {% if persistence %}
-  <pre>{{ persistence }}</pre>
-  {% else %}
-  <p>No persistence found.</p>
-  {% endif %}
-</section>
-<section class="card">
-  <h2>strings</h2>
-  <button class="collapse-btn" onclick="toggleCollapse(this)">▼</button>
-  {% if strings %}
-  <pre>{{ strings }}</pre>
-  {% else %}
-  <p>No strings found.</p>
-  {% endif %}
-</section>
+</div>
 {% endblock %}
