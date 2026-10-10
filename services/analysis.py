@@ -139,7 +139,7 @@ class Analyzer:
             return f"Error running strings: {e}"
 
     def _extract_entitlements_and_codesign(self) -> tuple[str, str, str]:
-        entitlements_text = "<p class='text-muted'>No entitlements found.</p>"
+        entitlements_text = "No entitlements found."
         codesign_info = []
         hardened_info = []
 
@@ -177,25 +177,15 @@ class Analyzer:
                         codesign_info.append("Embedded XML entitlements discovered inside binary.")
                         try:
                             plist_dict = plistlib.loads(xml_bytes)
-                            html_table = [
-                                "<div class=\"table-responsive\">",
-                                "<table class=\"table table-bordered table-striped table-hover align-middle shadow-sm\">",
-                                "  <thead class=\"table-dark\">",
-                                "    <tr>",
-                                "      <th style=\"width: 45%\">Entitlement Key</th>",
-                                "      <th style=\"width: 55%\">Value</th>",
-                                "    </tr>",
-                                "  </thead>",
-                                "  <tbody>"
+                            lines = [
+                                f"{'ENTITLEMENT KEY':<50} | {'VALUE'}",
+                                f"{'-'*50} | {'-'*30}"
                             ]
                             for k, v in plist_dict.items():
-                                html_table.append(f"    <tr><td><strong>{k}</strong></td><td><code>{v}</code></td></tr>")
-                            html_table.append("  </tbody>")
-                            html_table.append("</table>")
-                            html_table.append("</div>")
-                            entitlements_text = "\n".join(html_table)
+                                lines.append(f"{str(k):<50} | {str(v)}")
+                            entitlements_text = "\n".join(lines)
                         except Exception:
-                            entitlements_text = f"<pre>{xml_bytes.decode('utf-8', errors='replace')}</pre>"
+                            entitlements_text = xml_bytes.decode("utf-8", errors="replace")
 
                 if b"com.apple.security.cs." in content:
                     hardened_info.append("Hardened Runtime flags identified:")
