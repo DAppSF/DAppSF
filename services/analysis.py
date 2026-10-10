@@ -5,7 +5,6 @@ import zipfile
 import plistlib
 import subprocess
 import logging
-import lzma
 
 logger = logging.getLogger("dappsf.analysis")
 if not logger.handlers:
@@ -253,26 +252,53 @@ class Analyzer:
 
         return "\n".join(protections)
 
-    def _run_frida_ssl_pinning_check(self) -> str:
-        frida_dir = os.path.join(os.getcwd(), "frida")
-        inject_xz = os.path.join(frida_dir, "frida-inject-17.23.3-macos-arm64.xz")
-        inject_bin = os.path.join(frida_dir, "frida-inject")
+    def _run_static_ssl_pinning_check(self, strings_text: str) -> str:
+        report = ["Static SSL Pinning & Certificate Validation Analysis:"]
+        
+        # 1. Framework detection in Contents/Frameworks/ or Contents/Resources/
+        bundled_frameworks = []
+        bundled_certs = []
+        all_paths = self._get_all_files()
+        
+        for p in all_paths:
+            lower_p = p.lower()
+            if "contents/frameworks" in lower_p or "frameworks" in lower_p:
+                if ".framework" in p or lower_p.endswith((".dylib", ".framework")):
+                    bundled_frameworks.append(os.path.basename(p))
+            if lower_p.endswith((".cer", ".crt", ".der", ".pem")):
+                bundled_certs.append(os.path.basename(p))
 
-        report = ["Frida SSL Pinning Dynamic Check Integration:"]
-        if os.path.isfile(inject_xz) and not os.path.isfile(inject_bin):
-            try:
-                with lzma.open(inject_xz, "rb") as f_in, open(inject_bin, "wb") as f_out:
-                    f_out.write(f_in.read())
-                os.chmod(inject_bin, 0o755)
-                report.append("Successfully extracted bundled frida-inject binary.")
-            except Exception as e:
-                report.append(f"Failed to extract frida-inject: {e}")
+        report.append(f"\nBundled Frameworks / Libraries detected: {bundled_frameworks if bundled_frameworks else 'None explicit'}")
+        report.append(f"Bundled Certificate Files (.cer, .crt, .der, .pem): {bundled_certs if bundled_certs else 'None explicit'}")
 
-        if os.path.isfile(inject_bin):
-            report.append(f"frida-inject tool available at: {inject_bin}")
-            report.append("Status: Ready to instrument binary or hook SSL pinning APIs (SecTrustEvaluate, NSURLSession, TrustKit) dynamically.")
+        # 2. Framework name checks
+        has_trustkit = any("trustkit" in f.lower() for f in bundled_frameworks) or "TrustKit" in strings_text
+        has_alamofire = any("alamofire" in f.lower() for f in bundled_frameworks) or "Alamofire" in strings_text
+
+        report.append(f"  - TrustKit Framework / References: {'FOUND' if has_trustkit else 'NOT FOUND'}")
+        report.append(f"  - Alamofire Framework / References: {'FOUND' if has_alamofire else 'NOT FOUND'}")
+
+        # 3. API symbol matching
+        apis_to_check = [
+            "SecTrustEvaluate",
+            "SecTrustEvaluateWithError",
+            "URLSession:didReceiveChallenge:completionHandler:"
+        ]
+        found_apis = [api for api in apis_to_check if api in strings_text]
+        report.append(f"\nCertificate Evaluation / Challenge APIs matched in binary:")
+        if found_apis:
+            for api in found_apis:
+                report.append(f"  - {api}: PRESENT")
         else:
-            report.append("frida-inject binary not found or could not be prepared.")
+            report.append("  - No explicit evaluation or challenge handling APIs matched in strings.")
+
+        # 4. Summary finding evaluation
+        if has_trustkit or (bundled_certs and found_apis):
+            report.append("\nConclusion: Custom certificate validation / SSL pinning appears PROPERLY CONFIGURED (TrustKit or explicit certs + evaluation APIs present).")
+        elif found_apis or bundled_certs:
+            report.append("\nConclusion: Partial evidence of certificate handling or challenge delegation, but complete pinning implementation could not be verified statically.")
+        else:
+            report.append("\nConclusion: Custom certificate validation / SSL pinning NOT DETECTED or missing.")
 
         return "\n".join(report)
 
@@ -509,8 +535,22 @@ class Analyzer:
         has_webview = "WKWebView" in strings_text or "WebView" in strings_text or "evaluateJavaScript" in strings_text
         has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text or "sqlite3_exec" in strings_text
         has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text or "Process" in strings_text
-        has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower() or "TrustKit" in strings_text or "AFSecurityPolicy" in strings_text
         
+        has_trustkit = any("trustkit" in f.lower() for f in self._get_all_files()) or "TrustKit" in strings_text
+        bundled_certs_exist = any(p.lower().endswith((".cer", ".crt", ".der", ".pem")) for p in self._get_all_files())
+        has_eval_apis = "SecTrustEvaluate" in strings_text or "SecTrustEvaluateWithError" in strings_text or "URLSession:didReceiveChallenge:completionHandler:" in strings_text
+        
+        ssl_pinning_configured = has_trustkit or (bundled_certs_exist and has_eval_apis)
+        if ssl_pinning_configured:
+            ssl_desc = "Custom certificate validation / SSL pinning frameworks or evaluation APIs properly detected."
+            ssl_sev = "Low"
+        elif has_eval_apis:
+            ssl_desc = "Challenge evaluation APIs present, but explicit pinning framework or bundled certificates not fully verified."
+            ssl_sev = "Medium"
+        else:
+            ssl_desc = "Custom certificate validation or SSL pinning implementation not detected or missing."
+            ssl_sev = "High"
+
         has_touchid_api = "LocalAuthentication" in strings_text or "LAContext" in strings_text
         insecure_touchid = has_touchid_api and not ("kLAPolicyDeviceOwnerAuthentication" in strings_text or "fallbackTitle" in strings_text)
 
@@ -529,7 +569,7 @@ class Analyzer:
             ("Insecure WebView Attacks", "WKWebView/WebView usage identified with potential insecure JavaScript bridge or navigation policies." if has_webview else "No WebView components identified.", "High" if has_webview else "Low"),
             ("SQL Injection Attack", "Raw SQL query strings or insecure database execution APIs found." if has_sql else "No raw SQL execution indicators found.", "Critical" if has_sql else "Low"),
             ("Command Injection Attack", "Unsafe external command execution APIs (system/popen/NSTask/Process) detected." if has_cmd else "No unsafe command execution APIs detected.", "Critical" if has_cmd else "Low"),
-            ("Insecure SSL Pinning", "Disabled certificate validation or custom trust evaluation bypass patterns found." if not has_ssl_pinning else "SSL pinning / trust evaluation functions present.", "High" if not has_ssl_pinning else "Low"),
+            ("Insecure SSL Pinning", ssl_desc, ssl_sev),
             ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation." if insecure_touchid else ("TouchID / LocalAuthentication properly implemented or absent." if has_touchid_api else "No TouchID implementation found."), "High" if insecure_touchid else "Low"),
             ("Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified." if has_ats else "App Transport Security enforced securely.", "High" if has_ats else "Low")
         ]
@@ -655,7 +695,7 @@ class Analyzer:
         crash_handling = "Crash Handling & Diagnostics:\n" + ("Crash reporting symbols or frameworks detected (Firebase/Crashlytics/PLCrashReporter)." if ("crashlytics" in strings_text.lower() or "plcrashreporter" in strings_text.lower()) else "No common 3rd party crash reporting frameworks detected.")
         self._log_and_write("crash_handling.txt", "Crash Handling", crash_handling)
 
-        frida_ssl_report = self._run_frida_ssl_pinning_check()
-        self._log_and_write("frida_ssl_pinning.txt", "Frida SSL Pinning Check", frida_ssl_report)
+        static_ssl_report = self._run_static_ssl_pinning_check(strings_text)
+        self._log_and_write("frida_ssl_pinning.txt", "SSL Pinning Analysis", static_ssl_report)
 
         logger.info("Analysis completed successfully for job %s", self.job_id)
