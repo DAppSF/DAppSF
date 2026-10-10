@@ -398,22 +398,41 @@ class Analyzer:
         }
 
     def _scan_vulnerabilities(self, strings_text: str) -> str:
+        # Evaluate dynamic indicators from plist and strings
+        has_usage_desc = any(k.endswith("UsageDescription") for k in self.plist_data.keys())
+        min_os = str(self.plist_data.get("LSMinimumSystemVersion", "10.15"))
+        is_low_os = min_os.startswith("10.") or min_os.startswith("11.")
+
+        has_api_keys = bool(re.search(r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35}", strings_text))
+        has_sip_ref = "SIP" in strings_text or "SystemIntegrityProtection" in strings_text
+        has_mem_secrets = "password" in strings_text.lower() or "secret" in strings_text.lower()
+        has_logs = "NSLog" in strings_text or "os_log" in strings_text or "print(" in strings_text
+        has_keychain = "SecItemAdd" in strings_text or "kSecClassGenericPassword" in strings_text
+        has_firebase = "Firebase" in strings_text or "GoogleService-Info.plist" in "".join(self._get_all_files())
+        has_plists = any(p.endswith(".plist") for p in self._get_all_files())
+        has_webview = "WKWebView" in strings_text or "WebView" in strings_text
+        has_sql = "sqlite3_" in strings_text or "SELECT " in strings_text or "INSERT " in strings_text
+        has_cmd = "system(" in strings_text or "popen(" in strings_text or "NSTask" in strings_text
+        has_ssl_pinning = "SecTrustEvaluate" in strings_text or "pinned" in strings_text.lower()
+        has_touchid = "LocalAuthentication" in strings_text or "LAContext" in strings_text
+        has_ats = self.plist_data.get("NSAppTransportSecurity", {}).get("NSAllowsArbitraryLoads", False) or "NSAllowsArbitraryLoads" in str(self.plist_data)
+
         vulns_data = [
-            ("Excessive Permissions Granted", "Multiple or sensitive TCC privacy permissions requested in Info.plist.", "High"),
-            ("Minimum OS Version Low", "LSMinimumSystemVersion is outdated or permits legacy execution.", "Medium"),
-            ("Hardcoded API Keys", "Potential API keys, tokens, or credentials found embedded in binary strings.", "Critical"),
-            ("Insecure SIP Detection", "Binary references System Integrity Protection (SIP) bypass or checks.", "Medium"),
-            ("Sensitive Information stored in Memory", "References to passwords or secrets found in binary strings/memory structures.", "High"),
-            ("Insecure Data Leakage in Logs", "Logging functions (NSLog/os_log/print) active; potential sensitive data leakage.", "Medium"),
-            ("Insecure Data Storage in Keychain", "Keychain items found with weak or insecure accessibility attributes.", "High"),
-            ("Insecure Firebase Database", "Firebase integration or database endpoint detected with default or insecure configuration.", "Critical"),
-            ("Insecure Local Data Storage in plist files", "Unencrypted local plist configuration/storage files found.", "Medium"),
-            ("Insecure WebView Attacks", "WKWebView/WebView usage identified with potential insecure JavaScript bridge or navigation policies.", "High"),
-            ("SQL Injection Attack", "Raw SQL query strings or insecure database execution APIs found.", "Critical"),
-            ("Command Injection Attack", "Unsafe external command execution APIs (system/popen/NSTask/Process) detected.", "Critical"),
-            ("Insecure SSL Pinning", "Disabled certificate validation or custom trust evaluation bypass patterns found.", "High"),
-            ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation.", "High"),
-            ("Insecure Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified.", "High")
+            ("Excessive Permissions Granted", "Multiple or sensitive TCC privacy permissions requested in Info.plist." if has_usage_desc else "Standard permission set requested.", "High" if has_usage_desc else "Low"),
+            ("Minimum OS Version Low", f"LSMinimumSystemVersion is set to {min_os} (permits legacy execution)." if is_low_os else f"Minimum OS version {min_os} is up to date.", "Medium" if is_low_os else "Low"),
+            ("Hardcoded API Keys", "Potential API keys, tokens, or credentials found embedded in binary strings." if has_api_keys else "No hardcoded API keys or tokens identified.", "Critical" if has_api_keys else "Low"),
+            ("Insecure SIP Detection", "Binary references System Integrity Protection (SIP) bypass or checks." if has_sip_ref else "No explicit SIP references or bypass routines identified.", "Medium" if has_sip_ref else "Low"),
+            ("Sensitive Information stored in Memory", "References to passwords or secrets found in binary strings/memory structures." if has_mem_secrets else "No sensitive memory artifacts detected.", "High" if has_mem_secrets else "Low"),
+            ("Insecure Data Leakage in Logs", "Logging functions (NSLog/os_log/print) active; potential sensitive data leakage." if has_logs else "No excessive logging functions detected.", "Medium" if has_logs else "Low"),
+            ("Insecure Data Storage in Keychain", "Keychain items found with weak or insecure accessibility attributes." if has_keychain else "No insecure Keychain configurations identified.", "High" if has_keychain else "Low"),
+            ("Insecure Firebase Database", "Firebase integration or database endpoint detected with default or insecure configuration." if has_firebase else "No insecure Firebase configurations detected.", "Critical" if has_firebase else "Low"),
+            ("Insecure Local Data Storage in plist files", "Unencrypted local plist configuration/storage files found." if has_plists else "No local insecure plist storage found.", "Medium" if has_plists else "Low"),
+            ("Insecure WebView Attacks", "WKWebView/WebView usage identified with potential insecure JavaScript bridge or navigation policies." if has_webview else "No WebView components identified.", "High" if has_webview else "Low"),
+            ("SQL Injection Attack", "Raw SQL query strings or insecure database execution APIs found." if has_sql else "No raw SQL execution indicators found.", "Critical" if has_sql else "Low"),
+            ("Command Injection Attack", "Unsafe external command execution APIs (system/popen/NSTask/Process) detected." if has_cmd else "No unsafe command execution APIs detected.", "Critical" if has_cmd else "Low"),
+            ("Insecure SSL Pinning", "Disabled certificate validation or custom trust evaluation bypass patterns found." if not has_ssl_pinning else "SSL pinning / trust evaluation functions present.", "High" if not has_ssl_pinning else "Low"),
+            ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation." if has_touchid else "No TouchID / LocalAuthentication implementation found.", "High" if has_touchid else "Low"),
+            ("Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified." if has_ats else "App Transport Security enforced securely.", "High" if has_ats else "Low")
         ]
 
         severity_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
@@ -437,8 +456,10 @@ class Analyzer:
                 badge_class = "bg-purple"
             elif sev == "High":
                 badge_class = "bg-danger"
-            else:
+            elif sev == "Medium":
                 badge_class = "bg-warning text-dark"
+            else:
+                badge_class = "bg-secondary text-light"
 
             html.append(f"    <tr>")
             html.append(f"      <td><strong>{cat}</strong></td>")
