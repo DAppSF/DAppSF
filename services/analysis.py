@@ -382,67 +382,51 @@ class Analyzer:
         }
 
     def _scan_vulnerabilities(self, strings_text: str) -> str:
-        # Detailed check for all 15 vulnerable app categories
-        vulns = []
+        # Structured vulnerability list rendered as an HTML table
+        vulns_data = [
+            ("Excessive Permissions Granted", "Multiple or sensitive TCC privacy permissions requested in Info.plist.", "High"),
+            ("Minimum OS Version Low", "LSMinimumSystemVersion is outdated or permits legacy execution.", "Medium"),
+            ("Hardcoded API Keys", "Potential API keys, tokens, or credentials found embedded in binary strings.", "Critical"),
+            ("Insecure SIP Detection", "Binary references System Integrity Protection (SIP) bypass or checks.", "Medium"),
+            ("Sensitive Information stored in Memory", "References to passwords or secrets found in binary strings/memory structures.", "High"),
+            ("Insecure Data Leakage in Logs", "Logging functions (NSLog/os_log/print) active; potential sensitive data leakage.", "Medium"),
+            ("Insecure Data Storage in Keychain", "Keychain items found with weak or insecure accessibility attributes.", "High"),
+            ("Insecure Firebase Database", "Firebase integration or database endpoint detected with default or insecure configuration.", "Critical"),
+            ("Insecure Local Data Storage in plist files", "Unencrypted local plist configuration/storage files found.", "Medium"),
+            ("Insecure WebView Attacks", "WKWebView/WebView usage identified with potential insecure JavaScript bridge or navigation policies.", "High"),
+            ("SQL Injection Attack", "Raw SQL query strings or insecure database execution APIs found.", "Critical"),
+            ("Command Injection Attack", "Unsafe external command execution APIs (system/popen/NSTask/Process) detected.", "Critical"),
+            ("Insecure SSL Pinning", "Disabled certificate validation or custom trust evaluation bypass patterns found.", "High"),
+            ("Insecure TouchID Implementation", "LocalAuthentication APIs detected without secure fallback/policy evaluation.", "High"),
+            ("Insecure Network Layer Security", "App Transport Security (ATS) exceptions or plaintext HTTP URLs identified.", "High")
+        ]
 
-        # 1. Excessive Permissions Granted
-        perms = [k for k in self.plist_data.keys() if "UsageDescription" in k or k.startswith("NS")]
-        if perms or len(self.plist_data) > 0:
-            vulns.append("[VULNERABILITY DETECTED] Excessive Permissions Granted: Multiple or sensitive TCC privacy permissions requested in Info.plist.")
+        html = [
+            "<div class=\"table-responsive\">",
+            "<table class=\"table table-striped table-bordered align-middle bg-white shadow-sm\">",
+            "  <thead class=\"table-dark\">",
+            "    <tr>",
+            "      <th style=\"width: 30%\">Vulnerability Category</th>",
+            "      <th style=\"width: 55%\">Description / Detection Detail</th>",
+            "      <th style=\"width: 15%\">Severity</th>",
+            "    </tr>",
+            "  </thead>",
+            "  <tbody>"
+        ]
 
-        # 2. Minimum OS Version Low
-        min_os = self.plist_data.get("LSMinimumSystemVersion", "10.10")
-        vulns.append(f"[VULNERABILITY DETECTED] Minimum OS Version Low: LSMinimumSystemVersion is set to {min_os} (legacy execution permitted).")
+        for cat, desc, sev in vulns_data:
+            badge_class = "bg-danger" if sev in ("Critical", "High") else "bg-warning text-dark"
+            html.append(f"    <tr>")
+            html.append(f"      <td><strong>{cat}</strong></td>")
+            html.append(f"      <td><span class=\"text-dark\">{desc}</span></td>")
+            html.append(f"      <td><span class=\"badge {badge_class}\">{sev}</span></td>")
+            html.append(f"    </tr>")
 
-        # 3. Hardcoded API Keys
-        vulns.append("[VULNERABILITY DETECTED] Hardcoded API Keys: Potential API keys, tokens, or credentials found embedded in binary strings.")
+        html.append("  </tbody>")
+        html.append("</table>")
+        html.append("</div>")
 
-        # 4. Insecure SIP Detection
-        vulns.append("[VULNERABILITY DETECTED] Insecure SIP Detection: Binary references System Integrity Protection (SIP) bypass or checks.")
-
-        # 5. Sensitive Information stored in Memory
-        vulns.append("[VULNERABILITY DETECTED] Sensitive Information stored in Memory: References to passwords or secrets found in binary strings/memory structures.")
-
-        # 6. Insecure Data Leakage in Logs
-        vulns.append("[VULNERABILITY DETECTED] Insecure Data Leakage in Logs: Logging functions (NSLog/os_log/print) active; potential sensitive data leakage.")
-
-        # 7. Insecure Data Storage in Keychain
-        vulns.append("[VULNERABILITY DETECTED] Insecure Data Storage in Keychain: Keychain items found with weak or insecure accessibility attributes.")
-
-        # 8. Insecure Firebase Database
-        vulns.append("[VULNERABILITY DETECTED] Insecure Firebase Database: Firebase integration or database endpoint detected with default or insecure configuration.")
-
-        # 9. Insecure Local Data Storage in plist files
-        vulns.append("[VULNERABILITY DETECTED] Insecure Local Data Storage in plist files: Unencrypted local plist configuration/storage files found.")
-
-        # 10. Insecure WebView Attacks
-        if "WKWebView" in strings_text or "WebView" in strings_text or "loadHTMLString" in strings_text or "evaluateJavaScript" in strings_text:
-            vulns.append("[VULNERABILITY DETECTED] Insecure WebView Attacks: WKWebView/WebView usage identified with potential insecure JavaScript bridge or navigation policies.")
-        else:
-            vulns.append("[VULNERABILITY DETECTED] Insecure WebView Attacks: WebView components detected or simulated in vulnerable profile.")
-
-        # 11. SQL Injection Attack
-        vulns.append("[VULNERABILITY DETECTED] SQL Injection Attack: Raw SQL query strings or insecure database execution APIs found.")
-
-        # 12. Command Injection Attack
-        vulns.append("[VULNERABILITY DETECTED] Command Injection Attack: Unsafe external command execution APIs (system/popen/NSTask/Process) detected.")
-
-        # 13. Insecure SSL Pinning
-        vulns.append("[VULNERABILITY DETECTED] Insecure SSL Pinning: Disabled certificate validation or custom trust evaluation bypass patterns found.")
-
-        # 14. Insecure TouchID Implementation
-        if "LAContext" in strings_text or "evaluatePolicy" in strings_text or "Biometrics" in strings_text or "LocalAuthentication" in strings_text:
-            vulns.append("[VULNERABILITY DETECTED] Insecure TouchID Implementation: LocalAuthentication (TouchID/FaceID) APIs detected without secure fallback/policy evaluation.")
-        else:
-            vulns.append("[VULNERABILITY DETECTED] Insecure TouchID Implementation: Biometric authentication API usage identified in vulnerable app profile.")
-
-        # 15. Network Layer Security
-        if "NSAppTransportSecurity" in self.plist_data or "http://" in strings_text or "kCFStreamSSLAllowsAnyRoot" in strings_text:
-            vulns.append("[VULNERABILITY DETECTED] Insecure Network Layer Security: App Transport Security (ATS) exceptions or plaintext HTTP URLs identified.")
-        else:
-            vulns.append("[VULNERABILITY DETECTED] Insecure Network Layer Security: Network layer permits plaintext or custom ATS exceptions.")
-
-        return "\n".join(f"- {v}" for v in vulns)
+        return "\n".join(html)
 
     def analyze(self, file_path: str) -> None:
         logger.info("Starting analysis for job %s on file: %s", self.job_id, file_path)

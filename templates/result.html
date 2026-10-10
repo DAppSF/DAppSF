@@ -14,7 +14,7 @@
     <div class="card-body bg-light">
       <div class="card-content">
         {% if vulnerabilities %}
-        <pre class="mb-0 text-dark font-monospace bg-white p-3 rounded border" style="white-space: pre-wrap; font-size: 0.9rem;">{{ vulnerabilities }}</pre>
+        {{ vulnerabilities | safe }}
         {% else %}
         <p class="text-muted mb-0">No vulnerabilities detected.</p>
         {% endif %}
